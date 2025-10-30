@@ -1,9 +1,3 @@
-# Escola Primaria Mãos Unidas
-
-Perfecto 👍 — acá tenés la versión actualizada del texto, sin incluir el uniforme ni el calzado entre los gastos cubiertos por la beca:
-
----
-
 ## 🌍 **Escola Mãos Unidas — Lichinga, Mozambique**
 
 * 📍 **Ubicación:** Lichinga, provincia de Niassa, Mozambique.
@@ -34,11 +28,11 @@ El **Programa de Becas** de la Escola Mãos Unidas tiene como objetivo permitir 
 
 4. **Comunicación con los niños:**
    Los padrinos reciben **fotos, dibujos y actualizaciones** sobre el niño apadrinado y sobre el desarrollo general del proyecto.
+   También se envían **informes de progreso académico mensuales o a demanda**, para mantener un contacto cercano con el proceso educativo de cada niño.
 
 5. **Formas de colaboración:**
 
    * Apadrinando uno o más niños.
-   * Realizando donaciones únicas al fondo general del programa.
    * Difundiendo la iniciativa en redes o comunidades de fe.
 
 ---
@@ -49,7 +43,3 @@ El **Programa de Becas** de la Escola Mãos Unidas tiene como objetivo permitir 
 📍 Ramos Mejía, Buenos Aires, Argentina
 🌐 [Instagram oficial](https://www.instagram.com/corazondefuegocdf)
 ✉️ Se puede solicitar información o sumarse al programa escribiendo al equipo de misiones o acercándose a la iglesia.
-
----
-
-¿Querés que te prepare una versión breve (por ejemplo, para redes sociales o folleto informativo) con el mismo contenido resumido y un tono más inspirador?
