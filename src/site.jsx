@@ -255,6 +255,132 @@ const COPY = {
       disclaimer: "Este formulário usa um serviço externo. Responderemos o mais breve possível.",
     },
   },
+  en: {
+    nav: { 
+      school: "The School", 
+      education: "Educational System", 
+      students: "The Students", 
+      scholarships: "Scholarships", 
+      contact: "Contact" 
+    },
+    hero: {
+      title: "Escola Mãos Unidas",
+      subtitle: "Christian primary education in Lichinga, Mozambique",
+      ctaPrimary: "I want to sponsor",
+    },
+    school: {
+      heading: "Our History",
+      body: "Escola Mãos Unidas was born from the heart of Corazón de Fuego Church in Ramos Mejía, Buenos Aires, Argentina, with the vision of transforming lives in Lichinga, Niassa province, Mozambique. For more than 10 years we have walked alongside children and families in vulnerable situations, providing integral education, spiritual formation, and hope.",
+      mission: {
+        title: "Our Mission",
+        text: "To provide quality academic education, biblical values formation, and daily nutrition to children who would otherwise not have access to education. We believe that every child deserves an opportunity to develop their potential and build a better future.",
+      },
+      values: [
+        { title: "Academic excellence", text: "Commitment to quality education that prepares students for the future." },
+        { title: "Integral formation", text: "Development of spiritual, emotional, and social values." },
+        { title: "Community service", text: "Commitment to the wellbeing of families in vulnerable situations." },
+      ],
+    },
+    education: {
+      heading: "Educational System",
+      subtitle: "An integral proposal that combines academic excellence with Christian values",
+      levels: {
+        title: "Educational Levels",
+        description: "We offer complete education from pre-school to complete primary",
+        grades: [
+          "Pre-primary",
+          "1st Grade",
+          "2nd Grade",
+          "3rd Grade",
+          "4th Grade",
+          "5th Grade",
+          "6th Grade",
+        ],
+      },
+      subjectsTitle: "Subjects we offer",
+      subjects: [
+        { title: "Portuguese", text: "Development of written and oral communication skills as mother tongue." },
+        { title: "Mathematics", text: "Logical thinking and practical problem solving." },
+        { title: "Sciences", text: "Exploration of the natural and scientific world." },
+        { title: "Reading and Arts", text: "Creative expression and reading promotion." },
+      ],
+      approach: {
+        title: "Our Approach",
+        text: "We integrate biblical values into all areas of knowledge, creating an environment of respect, love, and service. Our teachers are committed to the integral formation of each student.",
+      },
+      support: {
+        title: "Continuous Support",
+        items: [
+          "Personalized pedagogical reinforcement",
+          "Promotion of study habits",
+          "Family accompaniment",
+          "Development of socio-emotional skills",
+          "Daily nutritious meals",
+        ],
+      },
+    },
+    students: {
+      heading: "Our Students",
+      subtitle: "More than 40 children find hope and future at our school",
+      stats: [
+        { label: "Active students", value: "40+" },
+        { label: "Ages", value: "5-13 years" },
+        { label: "Available enrollment", value: "200" },
+        { label: "Years of service", value: "+10" },
+      ],
+      profile: {
+        title: "Profile of our students",
+        text: "We serve children from Lichinga and nearby communities who are in socioeconomically vulnerable situations. Many come from families who cannot afford their children's education.",
+      },
+      impact: {
+        title: "The Impact on their lives",
+        items: [
+          "Access to quality education",
+          "Daily nutritious meals",
+          "Development of self-esteem and confidence",
+          "Formation in Christian values",
+          "Personalized accompaniment",
+          "Preparation for future challenges",
+        ],
+      },
+    },
+    scholarships: {
+      heading: "Scholarship Program",
+      subtitle: "Sponsor a child and transform their life",
+      description: "Your monthly contribution covers all necessary expenses for a child to receive complete education:",
+      bullets: [
+        "School fees and complete educational materials",
+        "Daily meals (lunch and, when necessary, breakfast)",
+        "Basic medical care and health monitoring",
+        "Spiritual and socio-emotional accompaniment",
+      ],
+      benefits: {
+        title: "As a sponsor, you will receive:",
+        items: [
+          "Photos and regular updates",
+          "Academic progress reports",
+          "Drawings and letters from the children",
+          "You will know the real impact of your contribution",
+        ],
+      },
+      cta: "Sponsor now",
+    },
+    contact: {
+      heading: "Contact",
+      church: "Corazón de Fuego Church",
+      city: "Ramos Mejía, Buenos Aires, Argentina",
+      channels: "Communication channels",
+      instagram: "Official Instagram",
+      email: "Email",
+      mapTitle: "Location",
+      formTitle: "Write to us",
+      formName: "Name",
+      formEmail: "Email",
+      formMsg: "Message",
+      formSubmit: "Send",
+      disclaimer: "This form uses an external service. We will respond as soon as possible.",
+    },
+  },
 };
 
 export default function EscolaMaosUnidasSite() {
@@ -279,11 +405,37 @@ export default function EscolaMaosUnidasSite() {
           </nav>
           <div className="flex items-center gap-2">
             <button 
-              onClick={() => setLang(lang === 'es' ? 'pt' : 'es')} 
-              className="px-3 py-2 rounded-lg border border-olive-200 text-xl hover:bg-olive-50 transition-colors"
-              title={lang === 'es' ? 'Switch to Portuguese' : 'Cambiar a Español'}
+              onClick={() => setLang('pt')} 
+              className={`px-3 py-2 rounded-lg border text-xl transition-colors ${
+                lang === 'pt' 
+                  ? 'border-olive-400 bg-olive-50' 
+                  : 'border-olive-200 hover:bg-olive-50'
+              }`}
+              title="Português"
             >
-              {lang === 'pt' ? '🇦🇷' : '🇵🇹'}
+              🇵🇹
+            </button>
+            <button 
+              onClick={() => setLang('es')} 
+              className={`px-3 py-2 rounded-lg border text-xl transition-colors ${
+                lang === 'es' 
+                  ? 'border-olive-400 bg-olive-50' 
+                  : 'border-olive-200 hover:bg-olive-50'
+              }`}
+              title="Español"
+            >
+              🇦🇷
+            </button>
+            <button 
+              onClick={() => setLang('en')} 
+              className={`px-3 py-2 rounded-lg border text-xl transition-colors ${
+                lang === 'en' 
+                  ? 'border-olive-400 bg-olive-50' 
+                  : 'border-olive-200 hover:bg-olive-50'
+              }`}
+              title="English"
+            >
+              🇺🇸
             </button>
             <a href="#scholarships" className="px-4 py-2 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white text-sm hover:from-olive-700 hover:to-olive-800 transition-colors">🤝 {t.hero.ctaPrimary}</a>
           </div>
