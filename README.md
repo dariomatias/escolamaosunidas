@@ -8,6 +8,35 @@
 
 ---
 
+## 🚀 **Desarrollo y Despliegue**
+
+### Instalación
+
+```bash
+npm install
+```
+
+### Desarrollo local
+
+```bash
+npm run dev
+```
+
+### Build de producción
+
+```bash
+npm run build
+```
+
+### Desplegar en Netlify
+
+1. Conecta tu repositorio a Netlify
+2. El archivo `netlify.toml` ya está configurado para desplegar automáticamente
+3. Netlify detectará que es un proyecto Vite y ejecutará `npm run build`
+4. Los archivos se servirán desde la carpeta `dist`
+
+---
+
 ## 🎓 **Programa de Becas (Scholarship Program)**
 
 El **Programa de Becas** de la Escola Mãos Unidas tiene como objetivo permitir que **niños y niñas de familias de bajos recursos puedan asistir gratuitamente a la escuela** y recibir una educación completa en un entorno cristiano.
