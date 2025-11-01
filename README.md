@@ -6,6 +6,21 @@
 * ❤️ **Apoyo principal:** La **Iglesia Corazón de Fuego** (Ramos Mejía, Buenos Aires, Argentina) sostiene y acompaña el proyecto educativo y misionero.
 * 👩🏽‍🏫 **Propósito:** Brindar educación integral, espiritual y alimentaria a niños en situación de vulnerabilidad, muchos de los cuales no tendrían acceso a la escuela sin este apoyo.
 
+### 🏫 **Historia de la Escuela**
+
+La Escola Primária Manos Unidas comenzó en 2010 con clases particulares de refuerzo escolar y alfabetización de adultos. En 2014 se inauguró el Jardín Infantil con autorización de Acción Social. La escuela primaria fue fundada oficialmente en 2017, con autorización definitiva del Ministerio de Educación de la Provincia.
+
+La escuela cuenta con tres bloques (1° ciclo, 2° ciclo y Gimnasio) y ofrece 7 salas de estudios, sala de profesores, comedor, secretaría y 5 baños, todos con agua canalizada y electricidad.
+
+### 🌐 **Sitio Web**
+
+El sitio web está disponible en **tres idiomas** (Español, Portugués e Inglés) y presenta:
+- Historia y misión de la escuela
+- Sistema educativo y materias
+- Información sobre los estudiantes
+- Programa de becas y apadrinamiento
+- Formulario de contacto
+
 ---
 
 ## 🚀 **Desarrollo y Despliegue**

@@ -19,6 +19,43 @@ const COPY = {
     school: {
       heading: "Nuestra Historia",
       body: "Escola Mãos Unidas nació del corazón de la Iglesia Corazón de Fuego en Ramos Mejía, Buenos Aires, Argentina, con la visión de transformar vidas en Lichinga, provincia de Niassa, Mozambique. Hace más de 10 años que caminamos junto a niños y familias en situación de vulnerabilidad, brindando educación integral, formación espiritual y esperanza.",
+      history: {
+        title: "Historia de la Escola Primária Manos Unidas",
+        origin: {
+          title: "Los comienzos",
+          text: "El proyecto comenzó en 2010 con clases particulares de refuerzo escolar para niños y jóvenes. En 2012 se iniciaron clases de alfabetización para adultos, específicamente con mujeres y jóvenes. Viendo que los niños del barrio iban a MADRASA (una casa) donde les enseñan el Corán, surgió la necesidad de ofrecer una alternativa cristiana.",
+        },
+        kindergarten: {
+          title: "Jardín Infantil",
+          text: "En 2014 se dio inicio al Jardín Infantil Manos Unidas con autorización de Acción Social en el barrio Josina Machel en la ciudad de Lichinga, Niassa, Mozambique.",
+        },
+        school: {
+          title: "Fundación de la Escuela Primaria",
+          text: "Viendo la preocupación e interés de los padres que querían que sus hijos continuaran en la escuela, decidimos en 2016 ingresar los documentos al Ministerio de Educación de la Provincia pidiendo autorización para dar inicio a la Escola Primária Manos Unidas. La autorización definitiva fue otorgada (no se tiene que renovar). Así dimos inicio a las clases el 1 de febrero de 2017 como ESCOLA PRIMÁRIA MANOS UNIDAS.",
+        },
+        characteristics: {
+          title: "Características",
+          text: "La escuela funciona con curriculum del gobierno, con maestros nacionales y alumnos sin distinción de raza, credo o color, dándoles una educación integral y de calidad con valores cristianos en período de mañana de 7h a 12h.",
+        },
+        staff: {
+          title: "Plantel",
+          text: "El plantel de la escuela está formado por: personal docente, personal no docente, padres encargados de educación y directora.",
+        },
+        facilities: {
+          title: "Instalaciones",
+          blocks: "La escuela se compone de tres bloques:",
+          block1: "Bloque frente a la entrada (1° ciclo)",
+          block2: "Bloque trasero (2° ciclo) - comprado en 2018",
+          block3: "Gimnasio",
+          roomsTitle: "Espacios y servicios:",
+          room1: "7 salas de estudios",
+          room2: "1 sala de profesores",
+          room3: "1 sala comedor",
+          room4: "Secretaría",
+          room5: "5 baños",
+          infrastructure: "Todas las salas cuentan con mobiliario completo. Los baños tienen sanitarios, agua canalizada y electricidad.",
+        },
+      },
       mission: {
         title: "Nuestra Misión",
         text: "Proporcionar educación académica de calidad, formación en valores bíblicos y alimentación diaria a niños que de otra manera no tendrían acceso a la educación. Creemos que cada niño merece una oportunidad de desarrollar su potencial y construir un futuro mejor.",
@@ -36,13 +73,13 @@ const COPY = {
         title: "Niveles Educativos",
         description: "Ofrecemos educación completa desde preescolar hasta primaria completa",
         grades: [
-          "Pré-primária (Pre-primaria)",
-          "1ª Classe (1º Grado)",
-          "2ª Classe (2º Grado)",
-          "3ª Classe (3º Grado)",
-          "4ª Classe (4º Grado)",
-          "5ª Classe (5º Grado)",
-          "6ª Classe (6º Grado)",
+          "Preescolar",
+          "1er Grado",
+          "2do Grado",
+          "3º Grado",
+          "4º Grado",
+          "5º Grado",
+          "6º Grado",
         ],
       },
       subjectsTitle: "Materias que ofrecemos",
@@ -145,6 +182,43 @@ const COPY = {
     school: {
       heading: "Nossa História",
       body: "A Escola Mãos Unidas nasceu do coração da Igreja Corazón de Fuego em Ramos Mejía, Buenos Aires, Argentina, com a visão de transformar vidas em Lichinga, província de Niassa, Moçambique. Há mais de 10 anos caminhamos junto a crianças e famílias em situação de vulnerabilidade, oferecendo educação integral, formação espiritual e esperança.",
+      history: {
+        title: "História da Escola Primária Manos Unidas",
+        origin: {
+          title: "Os começos",
+          text: "O projeto começou em 2010 com aulas particulares de reforço escolar para crianças e jovens. Em 2012 se iniciaram aulas de alfabetização para adultos, especificamente com mulheres e jovens. Vendo que as crianças do bairro iam para MADRASA (uma casa) onde lhes ensinam o Corão, surgiu a necessidade de oferecer uma alternativa cristã.",
+        },
+        kindergarten: {
+          title: "Jardim Infantil",
+          text: "Em 2014 se deu início ao Jardim Infantil Manos Unidas com autorização de Ação Social no bairro Josina Machel na cidade de Lichinga, Niassa, Moçambique.",
+        },
+        school: {
+          title: "Fundação da Escola Primária",
+          text: "Vendo a preocupação e interesse dos pais que queriam que seus filhos continuassem na escola, decidimos em 2016 entrar com os documentos no Ministério de Educação da Província pedindo autorização para dar início à Escola Primária Manos Unidas. A autorização definitiva foi concedida (não se tem que renovar). Assim demos início às aulas no dia 1 de fevereiro de 2017 como ESCOLA PRIMÁRIA MANOS UNIDAS.",
+        },
+        characteristics: {
+          title: "Características",
+          text: "A escola funciona com currículo do governo, com professores nacionais e alunos sem distinção de raça, credo ou cor, oferecendo-lhes uma educação integral e de qualidade com valores cristãos no período da manhã de 7h às 12h.",
+        },
+        staff: {
+          title: "Equipe",
+          text: "A equipe da escola está formada por: pessoal docente, pessoal não docente, pais encarregados de educação e diretora.",
+        },
+        facilities: {
+          title: "Instalações",
+          blocks: "A escola se compõe de três blocos:",
+          block1: "Bloco na frente da entrada (1° ciclo)",
+          block2: "Bloco de trás (2° ciclo) - comprado em 2018",
+          block3: "Ginásio",
+          roomsTitle: "Espaços e serviços:",
+          room1: "7 salas de estudos",
+          room2: "1 sala de professores",
+          room3: "1 sala refeitório",
+          room4: "Secretaria",
+          room5: "5 banheiros",
+          infrastructure: "Todas as salas contam com mobiliário completo. Os banheiros têm sanitários, água encanada e eletricidade.",
+        },
+      },
       mission: {
         title: "Nossa Missão",
         text: "Fornecer educação acadêmica de qualidade, formação em valores bíblicos e alimentação diária a crianças que, de outra forma, não teriam acesso à educação. Acreditamos que cada criança merece uma oportunidade de desenvolver seu potencial e construir um futuro melhor.",
@@ -271,6 +345,43 @@ const COPY = {
     school: {
       heading: "Our History",
       body: "Escola Mãos Unidas was born from the heart of Corazón de Fuego Church in Ramos Mejía, Buenos Aires, Argentina, with the vision of transforming lives in Lichinga, Niassa province, Mozambique. For more than 10 years we have walked alongside children and families in vulnerable situations, providing integral education, spiritual formation, and hope.",
+      history: {
+        title: "History of Escola Primária Manos Unidas",
+        origin: {
+          title: "The beginnings",
+          text: "The project began in 2010 with private tutoring classes for school reinforcement for children and youth. In 2012, adult literacy classes were initiated, specifically with women and youth. Seeing that children in the neighborhood were going to MADRASA (a house) where they are taught the Koran, arose the need to offer a Christian alternative.",
+        },
+        kindergarten: {
+          title: "Kindergarten",
+          text: "In 2014, Manos Unidas Kindergarten was inaugurated with authorization from Social Action in the Josina Machel neighborhood in the city of Lichinga, Niassa, Mozambique.",
+        },
+        school: {
+          title: "Foundation of Primary School",
+          text: "Seeing the concern and interest of parents who wanted their children to continue in school, in 2016 we decided to submit documents to the Provincial Ministry of Education requesting authorization to begin Escola Primária Manos Unidas. The definitive authorization was granted (does not need to be renewed). Classes began on February 1, 2017 as ESCOLA PRIMÁRIA MANOS UNIDAS.",
+        },
+        characteristics: {
+          title: "Characteristics",
+          text: "The school operates with a government curriculum, with national teachers and students without distinction of race, creed, or color, providing them with an integral and quality education with Christian values in the morning period from 7h to 12h.",
+        },
+        staff: {
+          title: "Staff",
+          text: "The school staff is formed by: teaching staff, non-teaching staff, parents in charge of education, and principal.",
+        },
+        facilities: {
+          title: "Facilities",
+          blocks: "The school consists of three blocks:",
+          block1: "Block at the entrance (1st cycle)",
+          block2: "Back block (2nd cycle) - purchased in 2018",
+          block3: "Gymnasium",
+          roomsTitle: "Spaces and services:",
+          room1: "7 study rooms",
+          room2: "1 teachers' room",
+          room3: "1 dining room",
+          room4: "Secretariat",
+          room5: "5 bathrooms",
+          infrastructure: "All rooms have complete furniture. Bathrooms have toilets, running water and electricity.",
+        },
+      },
       mission: {
         title: "Our Mission",
         text: "To provide quality academic education, biblical values formation, and daily nutrition to children who would otherwise not have access to education. We believe that every child deserves an opportunity to develop their potential and build a better future.",
@@ -470,6 +581,83 @@ export default function EscolaMaosUnidasSite() {
           <div className="mb-12">
             <h2 className="text-4xl font-bold mb-4 text-olive-800">{t.school.heading}</h2>
             <p className="text-lg text-neutral-700 leading-relaxed max-w-3xl">{t.school.body}</p>
+          </div>
+          
+          {/* HISTORY SECTION */}
+          <div className="mb-16">
+            <h3 className="text-3xl font-bold mb-8 text-olive-800">{t.school.history.title}</h3>
+            
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <div className="bg-gradient-to-br from-olive-50 to-stone-50 rounded-2xl p-6 border border-olive-100 shadow-sm">
+                <h4 className="text-xl font-bold mb-3 text-olive-700">{t.school.history.origin.title}</h4>
+                <p className="text-neutral-700 leading-relaxed">{t.school.history.origin.text}</p>
+              </div>
+              
+              <div className="bg-gradient-to-br from-olive-50 to-stone-50 rounded-2xl p-6 border border-olive-100 shadow-sm">
+                <h4 className="text-xl font-bold mb-3 text-olive-700">{t.school.history.kindergarten.title}</h4>
+                <p className="text-neutral-700 leading-relaxed">{t.school.history.kindergarten.text}</p>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-8 border border-olive-100 shadow-sm mb-8">
+              <h4 className="text-xl font-bold mb-3 text-olive-700">{t.school.history.school.title}</h4>
+              <p className="text-neutral-700 leading-relaxed">{t.school.history.school.text}</p>
+            </div>
+            
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              <div className="bg-white rounded-xl p-6 border border-olive-100 shadow-sm">
+                <h4 className="text-lg font-bold mb-3 text-olive-700">{t.school.history.characteristics.title}</h4>
+                <p className="text-neutral-700 text-sm leading-relaxed">{t.school.history.characteristics.text}</p>
+              </div>
+              
+              <div className="bg-white rounded-xl p-6 border border-olive-100 shadow-sm">
+                <h4 className="text-lg font-bold mb-3 text-olive-700">{t.school.history.staff.title}</h4>
+                <p className="text-neutral-700 text-sm leading-relaxed">{t.school.history.staff.text}</p>
+              </div>
+              
+              <div className="bg-white rounded-xl p-6 border border-olive-100 shadow-sm sm:col-span-2 lg:col-span-1">
+                <h4 className="text-lg font-bold mb-3 text-olive-700">{t.school.history.facilities.title}</h4>
+                <p className="text-neutral-700 text-sm leading-relaxed mb-3">{t.school.history.facilities.blocks}</p>
+                <ul className="space-y-1 mb-3">
+                  <li className="flex items-start gap-2">
+                    <span className="text-olive-600 mt-0.5">•</span>
+                    <span className="text-neutral-700 text-sm">{t.school.history.facilities.block1}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-olive-600 mt-0.5">•</span>
+                    <span className="text-neutral-700 text-sm">{t.school.history.facilities.block2}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-olive-600 mt-0.5">•</span>
+                    <span className="text-neutral-700 text-sm">{t.school.history.facilities.block3}</span>
+                  </li>
+                </ul>
+                <p className="text-neutral-700 text-sm font-semibold mb-2">{t.school.history.facilities.roomsTitle}</p>
+                <ul className="space-y-1">
+                  <li className="flex items-start gap-2">
+                    <span className="text-olive-600 mt-0.5">•</span>
+                    <span className="text-neutral-700 text-sm">{t.school.history.facilities.room1}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-olive-600 mt-0.5">•</span>
+                    <span className="text-neutral-700 text-sm">{t.school.history.facilities.room2}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-olive-600 mt-0.5">•</span>
+                    <span className="text-neutral-700 text-sm">{t.school.history.facilities.room3}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-olive-600 mt-0.5">•</span>
+                    <span className="text-neutral-700 text-sm">{t.school.history.facilities.room4}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-olive-600 mt-0.5">•</span>
+                    <span className="text-neutral-700 text-sm">{t.school.history.facilities.room5}</span>
+                  </li>
+                </ul>
+                <p className="text-neutral-700 text-sm leading-relaxed mt-3">{t.school.history.facilities.infrastructure}</p>
+              </div>
+            </div>
           </div>
           
           <div className="grid md:grid-cols-2 gap-8 mb-12">
