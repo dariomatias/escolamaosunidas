@@ -21,6 +21,40 @@ const COPY = {
       body: "Escola Mãos Unidas nació del corazón de la Iglesia Corazón de Fuego en Ramos Mejía, Buenos Aires, Argentina, con la visión de transformar vidas en Lichinga, provincia de Niassa, Mozambique. Hace más de 10 años que caminamos junto a niños y familias en situación de vulnerabilidad, brindando educación integral, formación espiritual y esperanza.",
       history: {
         title: "Historia de la Escola Primária Manos Unidas",
+        toggleLabel: "Ver como línea de tiempo",
+        timelineLabel: "Ver como tarjetas",
+        timeline: [
+          {
+            year: "2010",
+            title: "Los comienzos",
+            description: "Inicio de clases particulares de refuerzo escolar para niños y jóvenes",
+          },
+          {
+            year: "2012",
+            title: "Alfabetización de adultos",
+            description: "Se inician clases de alfabetización específicamente con mujeres y jóvenes. Surge la necesidad de ofrecer una alternativa cristiana ante la realidad del barrio",
+          },
+          {
+            year: "2014",
+            title: "Jardín Infantil",
+            description: "Inauguración del Jardín Infantil Manos Unidas con autorización de Acción Social en el barrio Josina Machel",
+          },
+          {
+            year: "2016",
+            title: "Solicitud de autorización",
+            description: "Se ingresan los documentos al Ministerio de Educación de la Provincia para dar inicio a la Escola Primária Manos Unidas",
+          },
+          {
+            year: "2017",
+            title: "Fundación oficial",
+            description: "1 de febrero - Inicio de clases como ESCOLA PRIMÁRIA MANOS UNIDAS con autorización definitiva del Ministerio de Educación",
+          },
+          {
+            year: "2018",
+            title: "Expansión",
+            description: "Compra del terreno trasero donde funciona el 2° ciclo",
+          },
+        ],
         origin: {
           title: "Los comienzos",
           text: "El proyecto comenzó en 2010 con clases particulares de refuerzo escolar para niños y jóvenes. En 2012 se iniciaron clases de alfabetización para adultos, específicamente con mujeres y jóvenes. Viendo que los niños del barrio iban a MADRASA (una casa) donde les enseñan el Corán, surgió la necesidad de ofrecer una alternativa cristiana.",
@@ -184,6 +218,40 @@ const COPY = {
       body: "A Escola Mãos Unidas nasceu do coração da Igreja Corazón de Fuego em Ramos Mejía, Buenos Aires, Argentina, com a visão de transformar vidas em Lichinga, província de Niassa, Moçambique. Há mais de 10 anos caminhamos junto a crianças e famílias em situação de vulnerabilidade, oferecendo educação integral, formação espiritual e esperança.",
       history: {
         title: "História da Escola Primária Manos Unidas",
+        toggleLabel: "Ver como linha do tempo",
+        timelineLabel: "Ver como cartões",
+        timeline: [
+          {
+            year: "2010",
+            title: "Os começos",
+            description: "Início de aulas particulares de reforço escolar para crianças e jovens",
+          },
+          {
+            year: "2012",
+            title: "Alfabetização de adultos",
+            description: "Se iniciam aulas de alfabetização especificamente com mulheres e jovens. Surge a necessidade de oferecer uma alternativa cristã ante a realidade do bairro",
+          },
+          {
+            year: "2014",
+            title: "Jardim Infantil",
+            description: "Inauguração do Jardim Infantil Manos Unidas com autorização de Ação Social no bairro Josina Machel",
+          },
+          {
+            year: "2016",
+            title: "Solicitação de autorização",
+            description: "Se entram com os documentos no Ministério de Educação da Província para dar início à Escola Primária Manos Unidas",
+          },
+          {
+            year: "2017",
+            title: "Fundação oficial",
+            description: "1 de fevereiro - Início das aulas como ESCOLA PRIMÁRIA MANOS UNIDAS com autorização definitiva do Ministério de Educação",
+          },
+          {
+            year: "2018",
+            title: "Expansão",
+            description: "Compra do terreno de trás onde funciona o 2° ciclo",
+          },
+        ],
         origin: {
           title: "Os começos",
           text: "O projeto começou em 2010 com aulas particulares de reforço escolar para crianças e jovens. Em 2012 se iniciaram aulas de alfabetização para adultos, especificamente com mulheres e jovens. Vendo que as crianças do bairro iam para MADRASA (uma casa) onde lhes ensinam o Corão, surgiu a necessidade de oferecer uma alternativa cristã.",
@@ -347,6 +415,40 @@ const COPY = {
       body: "Escola Mãos Unidas was born from the heart of Corazón de Fuego Church in Ramos Mejía, Buenos Aires, Argentina, with the vision of transforming lives in Lichinga, Niassa province, Mozambique. For more than 10 years we have walked alongside children and families in vulnerable situations, providing integral education, spiritual formation, and hope.",
       history: {
         title: "History of Escola Primária Manos Unidas",
+        toggleLabel: "View as timeline",
+        timelineLabel: "View as cards",
+        timeline: [
+          {
+            year: "2010",
+            title: "The beginnings",
+            description: "Start of private tutoring classes for school reinforcement for children and youth",
+          },
+          {
+            year: "2012",
+            title: "Adult literacy",
+            description: "Adult literacy classes begin specifically with women and youth. The need arises to offer a Christian alternative to the neighborhood reality",
+          },
+          {
+            year: "2014",
+            title: "Kindergarten",
+            description: "Inauguration of Manos Unidas Kindergarten with authorization from Social Action in the Josina Machel neighborhood",
+          },
+          {
+            year: "2016",
+            title: "Authorization request",
+            description: "Documents are submitted to the Provincial Ministry of Education to begin Escola Primária Manos Unidas",
+          },
+          {
+            year: "2017",
+            title: "Official foundation",
+            description: "February 1 - Classes begin as ESCOLA PRIMÁRIA MANOS UNIDAS with definitive authorization from the Ministry of Education",
+          },
+          {
+            year: "2018",
+            title: "Expansion",
+            description: "Purchase of the back lot where the 2nd cycle operates",
+          },
+        ],
         origin: {
           title: "The beginnings",
           text: "The project began in 2010 with private tutoring classes for school reinforcement for children and youth. In 2012, adult literacy classes were initiated, specifically with women and youth. Seeing that children in the neighborhood were going to MADRASA (a house) where they are taught the Koran, arose the need to offer a Christian alternative.",
@@ -496,6 +598,7 @@ const COPY = {
 
 export default function EscolaMaosUnidasSite() {
   const [lang, setLang] = useState("pt");
+  const [showTimeline, setShowTimeline] = useState(false);
   const t = useMemo(() => COPY[lang], [lang]);
 
   return (
@@ -585,8 +688,45 @@ export default function EscolaMaosUnidasSite() {
           
           {/* HISTORY SECTION */}
           <div className="mb-16">
-            <h3 className="text-3xl font-bold mb-8 text-olive-800">{t.school.history.title}</h3>
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-3xl font-bold text-olive-800">{t.school.history.title}</h3>
+              <button
+                onClick={() => setShowTimeline(!showTimeline)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-olive-300 bg-white hover:bg-olive-50 transition-colors text-sm font-medium text-olive-700"
+              >
+                <span>{showTimeline ? "📋" : "📅"}</span>
+                <span>{showTimeline ? t.school.history.timelineLabel : t.school.history.toggleLabel}</span>
+              </button>
+            </div>
             
+            {showTimeline ? (
+              /* TIMELINE VIEW */
+              <div className="relative">
+                <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-olive-300 via-olive-400 to-olive-300 hidden md:block"></div>
+                <div className="space-y-8 pl-0 md:pl-4">
+                  {t.school.history.timeline.map((item, index) => (
+                    <div key={index} className="relative flex items-start gap-6">
+                      <div className="hidden md:block flex-shrink-0 w-16 text-right pt-1 relative z-10">
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-olive-500 to-olive-600 text-white font-bold text-xs shadow-lg ring-4 ring-white">
+                          {item.year}
+                        </div>
+                      </div>
+                      <div className="flex-1 bg-gradient-to-br from-olive-50 to-stone-50 rounded-xl p-6 border border-olive-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="md:hidden mb-3">
+                          <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-gradient-to-br from-olive-500 to-olive-600 text-white font-bold text-sm">
+                            {item.year}
+                          </span>
+                        </div>
+                        <h4 className="text-xl font-bold mb-2 text-olive-700">{item.title}</h4>
+                        <p className="text-neutral-700 leading-relaxed">{item.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* CARDS VIEW */
+              <div>
             <div className="grid md:grid-cols-2 gap-6 mb-8">
               <div className="bg-gradient-to-br from-olive-50 to-stone-50 rounded-2xl p-6 border border-olive-100 shadow-sm">
                 <h4 className="text-xl font-bold mb-3 text-olive-700">{t.school.history.origin.title}</h4>
@@ -658,6 +798,8 @@ export default function EscolaMaosUnidasSite() {
                 <p className="text-neutral-700 text-sm leading-relaxed mt-3">{t.school.history.facilities.infrastructure}</p>
               </div>
             </div>
+              </div>
+            )}
           </div>
           
           <div className="grid md:grid-cols-2 gap-8 mb-12">
