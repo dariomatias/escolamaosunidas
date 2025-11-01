@@ -598,7 +598,7 @@ const COPY = {
 
 export default function EscolaMaosUnidasSite() {
   const [lang, setLang] = useState("pt");
-  const [showTimeline, setShowTimeline] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(true);
   const t = useMemo(() => COPY[lang], [lang]);
 
   return (
