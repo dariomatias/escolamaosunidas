@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 
 // Sitio institucional de la Escola Mãos Unidas
 
@@ -599,7 +599,21 @@ const COPY = {
 export default function EscolaMaosUnidasSite() {
   const [lang, setLang] = useState("pt");
   const [showTimeline, setShowTimeline] = useState(true);
+  const [currentImage, setCurrentImage] = useState(0);
   const t = useMemo(() => COPY[lang], [lang]);
+
+  const heroImages = [
+    "/assets/fachada_1.png",
+    "/assets/WhatsApp Image 2025-11-01 at 16.58.01_5f7df531.jpg",
+    "/assets/WhatsApp Image 2025-11-01 at 16.58.02_4529292f.jpg",
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % heroImages.length);
+    }, 5000); // Change image every 5 seconds
+    return () => clearInterval(interval);
+  }, [heroImages.length]);
 
   return (
     <div className="min-h-screen bg-stone-50 text-neutral-900">
@@ -672,7 +686,27 @@ export default function EscolaMaosUnidasSite() {
           </div>
           <div className="aspect-video rounded-2xl shadow-2xl border-4 border-olive-300/80 relative overflow-hidden ring-2 ring-olive-200/50">
             <div className="absolute inset-0 bg-gradient-to-br from-olive-50/20 to-transparent pointer-events-none z-10"></div>
-            <img src="/assets/fachada_1.png" alt="Escola Mãos Unidas - Fachada da escola" className="w-full h-full object-cover" />
+            <img 
+              src={heroImages[currentImage]} 
+              alt="Escola Mãos Unidas" 
+              className="w-full h-full object-cover transition-opacity duration-1000"
+              key={currentImage}
+            />
+            {/* Navigation dots */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+              {heroImages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentImage(index)}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    index === currentImage 
+                      ? 'bg-olive-400 w-8' 
+                      : 'bg-white/50 hover:bg-white/75'
+                  }`}
+                  aria-label={`Slide ${index + 1}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>
