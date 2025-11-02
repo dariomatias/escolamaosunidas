@@ -8,7 +8,8 @@ Firestore está configurado para la aplicación Escola Mãos Unidas. Este docume
 - ✅ Firestore habilitado en Firebase
 - ✅ Reglas de seguridad desplegadas
 - ✅ API de candidatos creada
-- ⏳ Falta: Configurar credenciales y cargar datos
+- ✅ API Key configurada (pública, esto es correcto y seguro)
+- ⏳ Falta: Cargar datos de candidatos
 
 ## 🔑 Configuración de Credenciales
 
@@ -62,7 +63,19 @@ node scripts/import-candidates.mjs
 firebase firestore:import candidates.json
 ```
 
-## 🔐 Reglas de Seguridad
+## 🔐 Seguridad
+
+### API Key Pública - ¿Es seguro?
+
+**Sí, es completamente seguro.** La API Key de Firebase que ves en `src/config/firebase.js` es pública por diseño. En aplicaciones web de frontend, todas las credenciales de Firebase se exponen en el código del navegador del usuario.
+
+**Por qué es seguro:**
+1. La API Key no tiene permisos por sí misma - solo identifica tu proyecto
+2. La seguridad real viene de las **reglas de Firestore** (ver abajo)
+3. Firebase controla qué puede hacer cada usuario autenticado
+4. Los datos sensibles están protegidos en subcolecciones que requieren autenticación
+
+### Reglas de Seguridad de Firestore
 
 Las reglas actuales permiten:
 
@@ -74,6 +87,18 @@ Las reglas actuales permiten:
   - `application` (evaluación interna)
   - `documents` (documentos personales)
   - `audit` (log de cambios)
+
+### Protecciones Adicionales (Opcional)
+
+Si quieres una capa extra de seguridad, puedes configurar restricciones en Google Cloud Console:
+
+1. Ve a [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Busca tu API Key de Firebase
+3. Agrega restricciones:
+   - **Por dominio**: Solo permitir tu dominio (`escola-maos-unidas.web.app`)
+   - **Por IP**: Limitar a IPs específicas (solo si tienes servidores backend)
+
+**Nota**: Esto es opcional. Las reglas de Firestore ya proporcionan suficiente seguridad.
 
 ## 🔌 Uso de la API
 

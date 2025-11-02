@@ -12,8 +12,11 @@
     "deploy:firestore": "firebase deploy --only firestore"
   },
   "dependencies": {
+    "chart.js": "^4.5.1",
     "firebase": "^12.5.0",
+    "firebase-admin": "^13.5.0",
     "react": "^18.2.0",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.9.5"
   },
