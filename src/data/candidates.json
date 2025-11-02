@@ -1,0 +1,582 @@
+[
+  {
+    "candidate_id": "f854ee0f-f7f7-4a60-8084-e984c438f75d",
+    "fullName": "Giovana Esperanza Hortencilio",
+    "birthDate": "2022-03-12",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/f854ee0f-f7f7-4a60-8084-e984c438f75d/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-02T00:02:35Z",
+    "updatedAt": "2025-11-02T00:02:35Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-02",
+      "updatedOn": "2025-11-02"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-02T00:02:35Z",
+      "updated_at": "2025-11-02T00:02:35Z"
+    }
+  },
+  {
+    "candidate_id": "67db3565-e716-4b97-a283-01c640dd8e70",
+    "fullName": "Isaque Paulo Anelito Moises",
+    "birthDate": "2020-02-15",
+    "level": "1° grado",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/67db3565-e716-4b97-a283-01c640dd8e70/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-02T00:02:35Z",
+    "updatedAt": "2025-11-02T00:02:35Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-02",
+      "updatedOn": "2025-11-02"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-02T00:02:35Z",
+      "updated_at": "2025-11-02T00:02:35Z"
+    }
+  },
+  {
+    "candidate_id": "b78a6af0-5465-4626-87a1-2593a92a8442",
+    "fullName": "Letonia Joaquin Abudo",
+    "birthDate": "2021-01-08",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/b78a6af0-5465-4626-87a1-2593a92a8442/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-02T00:02:35Z",
+    "updatedAt": "2025-11-02T00:02:35Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-02",
+      "updatedOn": "2025-11-02"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-02T00:02:35Z",
+      "updated_at": "2025-11-02T00:02:35Z"
+    }
+  },
+  {
+    "candidate_id": "e44b2d1d-b0ae-40d5-b948-2499da61100a",
+    "fullName": "Ricky Sardon",
+    "birthDate": null,
+    "level": "6° grado",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/e44b2d1d-b0ae-40d5-b948-2499da61100a/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-02T00:02:35Z",
+    "updatedAt": "2025-11-02T00:02:35Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-02",
+      "updatedOn": "2025-11-02"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-02T00:02:35Z",
+      "updated_at": "2025-11-02T00:02:35Z"
+    }
+  },
+  {
+    "candidate_id": "5fce015f-5a05-4627-9b9e-4e22c0a276fe",
+    "fullName": "Alverson Alverio Alves",
+    "birthDate": "2021-08-01",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/5fce015f-5a05-4627-9b9e-4e22c0a276fe/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-02T00:02:35Z",
+    "updatedAt": "2025-11-02T00:02:35Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-02",
+      "updatedOn": "2025-11-02"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-02T00:02:35Z",
+      "updated_at": "2025-11-02T00:02:35Z"
+    }
+  },
+  {
+    "candidate_id": "d7d1ec12-4e3c-4934-bbe0-afcb35b85443",
+    "fullName": "Erikson Zito Jacinto",
+    "birthDate": "2022-01-22",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/d7d1ec12-4e3c-4934-bbe0-afcb35b85443/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-02T00:02:35Z",
+    "updatedAt": "2025-11-02T00:02:35Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-02",
+      "updatedOn": "2025-11-02"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-02T00:02:35Z",
+      "updated_at": "2025-11-02T00:02:35Z"
+    }
+  },
+  {
+    "candidate_id": "5f36c58b-3c2b-4cd1-a41f-2551b9951254",
+    "fullName": "Fidelitone Amilcar Adolfo",
+    "birthDate": "2021-12-05",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/5f36c58b-3c2b-4cd1-a41f-2551b9951254/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-02T00:02:35Z",
+    "updatedAt": "2025-11-02T00:02:35Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-02",
+      "updatedOn": "2025-11-02"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-02T00:02:35Z",
+      "updated_at": "2025-11-02T00:02:35Z"
+    }
+  },
+  {
+    "candidate_id": "428faa43-3caa-4d12-bbc0-e65c5e5b4b94",
+    "fullName": "Vanesa Alima Adolfo",
+    "birthDate": null,
+    "level": "1° grado",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/428faa43-3caa-4d12-bbc0-e65c5e5b4b94/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-02T00:02:35Z",
+    "updatedAt": "2025-11-02T00:02:35Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-02",
+      "updatedOn": "2025-11-02"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-02T00:02:35Z",
+      "updated_at": "2025-11-02T00:02:35Z"
+    }
+  },
+  {
+    "candidate_id": "c3565be2-6173-40a8-a3cf-3d0ac345a3de",
+    "fullName": "Ariel Maxwell da Cruz",
+    "birthDate": "2023-03-16",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/c3565be2-6173-40a8-a3cf-3d0ac345a3de/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-02T00:02:35Z",
+    "updatedAt": "2025-11-02T00:02:35Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-02",
+      "updatedOn": "2025-11-02"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-02T00:02:35Z",
+      "updated_at": "2025-11-02T00:02:35Z"
+    }
+  },
+  {
+    "candidate_id": "4e7d15dd-4c31-4211-ba11-d7ead4f135fc",
+    "fullName": "Edina de Diego",
+    "birthDate": "2021-11-21",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/4e7d15dd-4c31-4211-ba11-d7ead4f135fc/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-02T00:02:35Z",
+    "updatedAt": "2025-11-02T00:02:35Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-02",
+      "updatedOn": "2025-11-02"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-02T00:02:35Z",
+      "updated_at": "2025-11-02T00:02:35Z"
+    }
+  }
+]

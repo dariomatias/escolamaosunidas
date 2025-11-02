@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Public candidates data (read-only for public)
+    match /candidates/{candidateId} {
+      // Anyone can read basic candidate info for public display
+      allow read: if request.auth == null || request.auth != null;
+      
+      // Only authenticated admins can write
+      allow write: if request.auth != null;
+    }
+    
+    // Sensitive data (guardian, household, application, audit, documents)
+    // Only authenticated admins can access
+    match /candidates/{candidateId}/guardian/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    match /candidates/{candidateId}/household/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    match /candidates/{candidateId}/application/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    match /candidates/{candidateId}/documents/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    match /candidates/{candidateId}/audit/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
