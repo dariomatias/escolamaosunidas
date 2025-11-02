@@ -131,13 +131,26 @@ Para desplegar todo (Hosting + Firestore):
 firebase deploy
 ```
 
+## 👥 Configurar Usuarios Administradores
+
+Para acceder al panel de administración, necesitas crear usuarios en Firebase Authentication:
+
+1. Ve a la [Consola de Firebase Authentication](https://console.firebase.google.com/project/escola-maos-unidas/authentication/users)
+2. Haz clic en "Agregar usuario"
+3. Ingresa un email y una contraseña
+4. Haz clic en "Agregar"
+
+Luego podrás iniciar sesión en `https://escola-maos-unidas.web.app/login`
+
+**Importante**: Las credenciales se configuran manualmente. No hay sistema de registro público.
+
 ## 📝 Próximos Pasos
 
-1. Configurar `.env.local` con las credenciales de Firebase
+1. ✅ Configurar `.env.local` con las credenciales de Firebase
 2. Cargar los datos de candidatos
-3. Configurar Firebase Authentication para admins
-4. Integrar la API de candidatos en la UI
-5. Agregar autenticación de usuarios para acceso a datos sensibles
+3. ✅ Configurar Firebase Authentication para admins (listo)
+4. ✅ Integrar la API de candidatos en la UI (listo)
+5. ✅ Agregar autenticación de usuarios (listo)
 
 ## 🆘 Troubleshooting
 

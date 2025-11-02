@@ -20,6 +20,19 @@ El sitio web está disponible en **tres idiomas** (Español, Portugués e Inglé
 - Información sobre los estudiantes
 - Programa de becas y apadrinamiento
 - Formulario de contacto
+- **Panel de administración** para gestionar candidatos a becas (acceso protegido)
+
+#### 🔐 **Panel de Administración**
+
+Acceso: `https://escola-maos-unidas.web.app/admin`
+
+El panel permite gestionar las solicitudes de becas con un CRUD completo:
+- Ver lista de todos los candidatos
+- Agregar nuevos candidatos
+- Editar información existente
+- Cambiar estados (pendiente, activo, rechazado)
+- Eliminar candidatos
+- Ver estadísticas en tiempo real
 
 ---
 
@@ -43,12 +56,24 @@ npm run dev
 npm run build
 ```
 
-### Desplegar en Netlify
+### Desplegar
+
+#### Opción 1: Firebase (Recomendado)
+
+```bash
+npm run deploy
+```
+
+Esto despliega tanto el sitio como las reglas de Firestore.
+
+#### Opción 2: Netlify
 
 1. Conecta tu repositorio a Netlify
 2. El archivo `netlify.toml` ya está configurado para desplegar automáticamente
 3. Netlify detectará que es un proyecto Vite y ejecutará `npm run build`
 4. Los archivos se servirán desde la carpeta `dist`
+
+**Nota**: Netlify NO despliega Firestore. Necesitas Firebase para la base de datos.
 
 ---
 
