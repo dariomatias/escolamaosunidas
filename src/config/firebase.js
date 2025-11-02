@@ -3,12 +3,12 @@ import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDnmHHwzk8zAfvZLySAnJiObOcJA5yPtsA",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "escola-maos-unidas.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "escola-maos-unidas",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "escola-maos-unidas.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "516070200221",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:516070200221:web:43142448297303b17d9574",
 };
 
 const app = initializeApp(firebaseConfig);
