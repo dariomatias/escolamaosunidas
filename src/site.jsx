@@ -612,6 +612,11 @@ export default function EscolaMaosUnidasSite() {
   const [lang, setLang] = useState("pt");
   const [showTimeline, setShowTimeline] = useState(true);
   const [currentImage, setCurrentImage] = useState(0);
+  const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+  const [formStatus, setFormStatus] = useState({ loading: false, success: false, error: '' });
+  const [showSponsorshipModal, setShowSponsorshipModal] = useState(false);
+  const [sponsorshipData, setSponsorshipData] = useState({ firstName: '', lastName: '', email: '' });
+  const [sponsorshipStatus, setSponsorshipStatus] = useState({ loading: false, success: false, error: '' });
   const t = useMemo(() => COPY[lang], [lang]);
 
   const heroImages = [
@@ -626,6 +631,82 @@ export default function EscolaMaosUnidasSite() {
     }, 5000); // Change image every 5 seconds
     return () => clearInterval(interval);
   }, [heroImages.length]);
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setFormStatus({ loading: true, success: false, error: '' });
+
+    try {
+      // Obtener la URL de la función (se actualizará después del deploy)
+      const functionUrl = 'https://us-central1-escola-maos-unidas.cloudfunctions.net/sendContactEmail';
+      
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          message: formData.message,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setFormStatus({ loading: false, success: true, error: '' });
+        setFormData({ name: '', email: '', message: '' });
+        // Resetear el mensaje de éxito después de 5 segundos
+        setTimeout(() => {
+          setFormStatus({ loading: false, success: false, error: '' });
+        }, 5000);
+      } else {
+        setFormStatus({ loading: false, success: false, error: data.message || 'Error al enviar el mensaje' });
+      }
+    } catch (error) {
+      console.error('Error sending form:', error);
+      setFormStatus({ loading: false, success: false, error: 'Error de conexión. Por favor intenta nuevamente.' });
+    }
+  };
+
+  const handleSponsorshipSubmit = async (e) => {
+    e.preventDefault();
+    setSponsorshipStatus({ loading: true, success: false, error: '' });
+
+    try {
+      const functionUrl = 'https://us-central1-escola-maos-unidas.cloudfunctions.net/sendSponsorshipEmail';
+      
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: sponsorshipData.firstName,
+          lastName: sponsorshipData.lastName,
+          email: sponsorshipData.email,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setSponsorshipStatus({ loading: false, success: true, error: '' });
+        setSponsorshipData({ firstName: '', lastName: '', email: '' });
+        // Cerrar el modal después de 2 segundos (tiempo suficiente para ver el mensaje de éxito)
+        setTimeout(() => {
+          setShowSponsorshipModal(false);
+          setSponsorshipStatus({ loading: false, success: false, error: '' });
+        }, 2000);
+      } else {
+        setSponsorshipStatus({ loading: false, success: false, error: data.message || 'Error al enviar la solicitud' });
+      }
+    } catch (error) {
+      console.error('Error sending sponsorship form:', error);
+      setSponsorshipStatus({ loading: false, success: false, error: lang === 'es' ? 'Error de conexión. Por favor intenta nuevamente.' : lang === 'pt' ? 'Erro de conexão. Por favor tente novamente.' : 'Connection error. Please try again.' });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-stone-50 text-neutral-900">
@@ -677,7 +758,7 @@ export default function EscolaMaosUnidasSite() {
             >
               🇺🇸
             </button>
-            <a href="#scholarships" className="px-4 py-2 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white text-sm hover:from-olive-700 hover:to-olive-800 transition-colors">🤝 {t.hero.ctaPrimary}</a>
+            <button onClick={() => setShowSponsorshipModal(true)} className="px-4 py-2 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white text-sm hover:from-olive-700 hover:to-olive-800 transition-colors">🤝 {t.hero.ctaPrimary}</button>
           </div>
         </div>
       </header>
@@ -693,7 +774,7 @@ export default function EscolaMaosUnidasSite() {
             <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mb-4 bg-gradient-to-r from-olive-700 to-neutral-800 bg-clip-text text-transparent">{t.hero.title}</h1>
             <p className="text-xl text-neutral-700 mb-8">{t.hero.subtitle}</p>
             <div className="flex gap-3">
-              <a href="#scholarships" className="px-6 py-3 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white text-base hover:from-olive-700 hover:to-olive-800 transition-colors shadow-lg">🤝 {t.hero.ctaPrimary}</a>
+              <button onClick={() => setShowSponsorshipModal(true)} className="px-6 py-3 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white text-base hover:from-olive-700 hover:to-olive-800 transition-colors shadow-lg">🤝 {t.hero.ctaPrimary}</button>
             </div>
           </div>
           <div className="aspect-video rounded-2xl shadow-2xl border-4 border-olive-300/80 relative overflow-hidden ring-2 ring-olive-200/50">
@@ -994,12 +1075,12 @@ export default function EscolaMaosUnidasSite() {
           </div>
 
           <div className="text-center">
-            <a 
-              href="mailto:becas@escolamaosunidas.com?subject=Apadrinamiento%20Escola%20M%C3%A3os%20Unidas" 
+            <button 
+              onClick={() => setShowSponsorshipModal(true)}
               className="inline-block px-8 py-4 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white text-lg font-semibold hover:from-olive-700 hover:to-olive-800 transition-colors shadow-lg"
             >
               🤝 {t.scholarships.cta}
-            </a>
+            </button>
           </div>
         </div>
       </section>
@@ -1042,22 +1123,61 @@ export default function EscolaMaosUnidasSite() {
               <h3 className="font-bold text-xl text-olive-800">{t.contact.formTitle}</h3>
             </div>
             <div className="p-8">
-              <form action="https://formspree.io/f/xyzzzzzz" method="POST" className="space-y-4">
-                <input type="hidden" name="_to" value="info@escolamaosunidas.com" />
+              <form onSubmit={handleFormSubmit} className="space-y-4">
+                {formStatus.success && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+                    ✓ {lang === 'es' ? '¡Mensaje enviado exitosamente! Te responderemos pronto.' : lang === 'pt' ? 'Mensagem enviada com sucesso! Responderemos em breve.' : 'Message sent successfully! We will respond soon.'}
+                  </div>
+                )}
+                {formStatus.error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+                    ✗ {formStatus.error}
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-medium text-neutral-700" htmlFor="name">{t.contact.formName}</label>
-                  <input id="name" name="name" required className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100" />
+                  <input 
+                    id="name" 
+                    name="name" 
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required 
+                    disabled={formStatus.loading}
+                    className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-neutral-700" htmlFor="email">{t.contact.formEmail}</label>
-                  <input id="email" name="email" type="email" required className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100" />
+                  <input 
+                    id="email" 
+                    name="email" 
+                    type="email" 
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required 
+                    disabled={formStatus.loading}
+                    className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-neutral-700" htmlFor="message">{t.contact.formMsg}</label>
-                  <textarea id="message" name="message" rows={4} className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100" />
+                  <textarea 
+                    id="message" 
+                    name="message" 
+                    rows={4} 
+                    value={formData.message}
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    required
+                    disabled={formStatus.loading}
+                    className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                  />
                 </div>
-                <button type="submit" className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white font-semibold hover:from-olive-700 hover:to-olive-800 transition-colors shadow-md">
-                  ✉️ {t.contact.formSubmit}
+                <button 
+                  type="submit" 
+                  disabled={formStatus.loading}
+                  className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white font-semibold hover:from-olive-700 hover:to-olive-800 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {formStatus.loading ? '⏳ ' : '✉️ '}{formStatus.loading ? (lang === 'es' ? 'Enviando...' : lang === 'pt' ? 'Enviando...' : 'Sending...') : t.contact.formSubmit}
                 </button>
                 <p className="text-xs text-neutral-500 mt-2">{t.contact.disclaimer}</p>
               </form>
@@ -1065,6 +1185,105 @@ export default function EscolaMaosUnidasSite() {
           </div>
         </div>
       </section>
+
+      {/* SPONSORSHIP MODAL */}
+      {showSponsorshipModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowSponsorshipModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-olive-100 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-olive-800">
+                {lang === 'es' ? 'Solicitar Apadrinamiento' : lang === 'pt' ? 'Solicitar Apadrinhamento' : 'Request Sponsorship'}
+              </h3>
+              <button 
+                onClick={() => setShowSponsorshipModal(false)}
+                className="text-neutral-400 hover:text-neutral-600 text-2xl"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-6">
+              <form onSubmit={handleSponsorshipSubmit} className="space-y-4">
+                {sponsorshipStatus.success && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+                    ✓ {lang === 'es' ? '¡Solicitud enviada exitosamente! Te contactaremos pronto.' : lang === 'pt' ? 'Solicitação enviada com sucesso! Entraremos em contato em breve.' : 'Request sent successfully! We will contact you soon.'}
+                    <button
+                      onClick={() => {
+                        setShowSponsorshipModal(false);
+                        setSponsorshipStatus({ loading: false, success: false, error: '' });
+                      }}
+                      className="mt-2 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                    >
+                      {lang === 'es' ? 'Cerrar' : lang === 'pt' ? 'Fechar' : 'Close'}
+                    </button>
+                  </div>
+                )}
+                {sponsorshipStatus.error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+                    ✗ {sponsorshipStatus.error}
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    {lang === 'es' ? 'Nombre' : lang === 'pt' ? 'Nome' : 'First Name'}
+                  </label>
+                  <input 
+                    type="text"
+                    value={sponsorshipData.firstName}
+                    onChange={(e) => setSponsorshipData({ ...sponsorshipData, firstName: e.target.value })}
+                    required 
+                    disabled={sponsorshipStatus.loading}
+                    className="w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    {lang === 'es' ? 'Apellido' : lang === 'pt' ? 'Sobrenome' : 'Last Name'}
+                  </label>
+                  <input 
+                    type="text"
+                    value={sponsorshipData.lastName}
+                    onChange={(e) => setSponsorshipData({ ...sponsorshipData, lastName: e.target.value })}
+                    required 
+                    disabled={sponsorshipStatus.loading}
+                    className="w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    {lang === 'es' ? 'Email' : lang === 'pt' ? 'E-mail' : 'Email'}
+                  </label>
+                  <input 
+                    type="email"
+                    value={sponsorshipData.email}
+                    onChange={(e) => setSponsorshipData({ ...sponsorshipData, email: e.target.value })}
+                    required 
+                    disabled={sponsorshipStatus.loading}
+                    className="w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                  />
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button 
+                    type="button"
+                    onClick={() => setShowSponsorshipModal(false)}
+                    disabled={sponsorshipStatus.loading}
+                    className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-100 text-neutral-700 font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {lang === 'es' ? 'Cancelar' : lang === 'pt' ? 'Cancelar' : 'Cancel'}
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={sponsorshipStatus.loading}
+                    className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white font-semibold hover:from-olive-700 hover:to-olive-800 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sponsorshipStatus.loading ? '⏳ ' : '✉️ '}{sponsorshipStatus.loading ? (lang === 'es' ? 'Enviando...' : lang === 'pt' ? 'Enviando...' : 'Sending...') : (lang === 'es' ? 'Enviar Solicitud' : lang === 'pt' ? 'Enviar Solicitação' : 'Send Request')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FOOTER */}
       <footer className="border-t border-olive-100 bg-gradient-to-b from-olive-50/30 to-white">
