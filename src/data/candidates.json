@@ -578,5 +578,1513 @@
       "created_at": "2025-11-02T00:02:35Z",
       "updated_at": "2025-11-02T00:02:35Z"
     }
+  },
+  {
+    "candidate_id": "092919a3-2184-4003-b781-244fa2bed799",
+    "fullName": "Giovana Esperanza",
+    "birthDate": "2022-12-03",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/092919a3-2184-4003-b781-244fa2bed799/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "01d67c83-38f9-49ce-9841-651f99d6d8f0",
+    "fullName": "Isaque Paulo Anelito Mois",
+    "birthDate": "2020-02-15",
+    "level": "1° grado",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/01d67c83-38f9-49ce-9841-651f99d6d8f0/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "96ec52a4-d27b-4b41-82e5-5c7d6a7f68bb",
+    "fullName": "Alverson Avelios Alves",
+    "birthDate": "2021-01-08",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/96ec52a4-d27b-4b41-82e5-5c7d6a7f68bb/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "956f3a4a-7fe1-4cf9-8a2a-1bb656308c50",
+    "fullName": "Fideltone Amilcar Adolfo",
+    "birthDate": "2021-05-12",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/956f3a4a-7fe1-4cf9-8a2a-1bb656308c50/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "d4bf3ca1-7b1b-42d0-bb62-b80cf4128b47",
+    "fullName": "Edina da Diego",
+    "birthDate": "2021-11-21",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/d4bf3ca1-7b1b-42d0-bb62-b80cf4128b47/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "ea904f26-07c2-452c-becc-a24829682ffb",
+    "fullName": "Cristina Jemusse",
+    "birthDate": "2020-03-09",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/ea904f26-07c2-452c-becc-a24829682ffb/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "35d11c3b-598a-4c68-ba67-453863d2345e",
+    "fullName": "David Fernandez Mucheape",
+    "birthDate": "2018-03-31",
+    "level": "3º Grado",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/35d11c3b-598a-4c68-ba67-453863d2345e/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "09b426d9-3a36-41f0-843f-7ab5515bd231",
+    "fullName": "Gerson Ernesto Jose",
+    "birthDate": "2017-01-29",
+    "level": "4º Grado",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/09b426d9-3a36-41f0-843f-7ab5515bd231/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "7a5c4024-4831-4763-bb74-8a785efc4a3a",
+    "fullName": "Yusney Sansa Flavio Jaime",
+    "birthDate": "2023-11-06",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/7a5c4024-4831-4763-bb74-8a785efc4a3a/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "cb68c190-038a-4700-b226-aaecb505e82c",
+    "fullName": "Gabriela Filismino Simeao",
+    "birthDate": null,
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/cb68c190-038a-4700-b226-aaecb505e82c/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "da247fca-0833-419a-b252-5f08d703a957",
+    "fullName": "Kelvin da Gracinda Dominguez",
+    "birthDate": "2020-02-10",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/da247fca-0833-419a-b252-5f08d703a957/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "02be5223-b5e4-4817-8f24-efba173bd491",
+    "fullName": "Osaias Alberto Reinaldo",
+    "birthDate": "2019-09-30",
+    "level": "1° grado",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/02be5223-b5e4-4817-8f24-efba173bd491/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "547165b6-3b80-463b-b7f3-362042d856fb",
+    "fullName": "Edivania Eugenio",
+    "birthDate": "2018-04-14",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/547165b6-3b80-463b-b7f3-362042d856fb/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "137a42e7-5127-45b2-b86d-692d7ccbe8f4",
+    "fullName": "Neyma Eugenio Tuabo",
+    "birthDate": "2019-11-17",
+    "level": "1° grado",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/137a42e7-5127-45b2-b86d-692d7ccbe8f4/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "cc4d0034-c383-49c2-bda1-76ec829532eb",
+    "fullName": "Miguel Timoteo Paulo",
+    "birthDate": "2020-07-27",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/cc4d0034-c383-49c2-bda1-76ec829532eb/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "97e209f0-15c3-420c-a906-c96f97e01091",
+    "fullName": "Luisa Esperanza Jorge",
+    "birthDate": "2021-01-03",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/97e209f0-15c3-420c-a906-c96f97e01091/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "8d206ce4-57fb-40d0-9ed2-d5a833b1fd71",
+    "fullName": "Dernilo Arnaldo Julio",
+    "birthDate": "2021-01-24",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/8d206ce4-57fb-40d0-9ed2-d5a833b1fd71/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "84cd5c03-c46c-4aa9-b199-d969096a63ca",
+    "fullName": "Ivanildo Esperanza Anibal",
+    "birthDate": "2020-01-19",
+    "level": "1° grado",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/84cd5c03-c46c-4aa9-b199-d969096a63ca/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "672de8c9-e69a-4271-a0e0-fb88d3ac05af",
+    "fullName": "Johana Teodoro Custodio",
+    "birthDate": "2021-09-09",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/672de8c9-e69a-4271-a0e0-fb88d3ac05af/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "2416b3d5-ca23-4afe-a4ad-c932221ce2ef",
+    "fullName": "Reginaldo Abibo Brito",
+    "birthDate": "2019-09-09",
+    "level": "1° grado",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/2416b3d5-ca23-4afe-a4ad-c932221ce2ef/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "216c456a-2e31-4341-8edc-331ad1bcbabf",
+    "fullName": "Assane Oscar Adriano",
+    "birthDate": null,
+    "level": "1° grado",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/216c456a-2e31-4341-8edc-331ad1bcbabf/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "Gemelo 1",
+    "createdAt": "2025-11-27T01:50:34.553Z",
+    "updatedAt": "2025-11-27T01:50:34.553Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.553Z",
+      "updated_at": "2025-11-27T01:50:34.553Z"
+    }
+  },
+  {
+    "candidate_id": "379deed1-b313-4b7b-9b60-35716fbd1492",
+    "fullName": "Sanito Oscar Adriano",
+    "birthDate": null,
+    "level": "1° grado",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/379deed1-b313-4b7b-9b60-35716fbd1492/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "Gemelo 2",
+    "createdAt": "2025-11-27T01:50:34.554Z",
+    "updatedAt": "2025-11-27T01:50:34.554Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.554Z",
+      "updated_at": "2025-11-27T01:50:34.554Z"
+    }
+  },
+  {
+    "candidate_id": "ea1973b3-05f9-47a4-97dc-f8e5baf80bbb",
+    "fullName": "Inacio da Saquina Cambula",
+    "birthDate": null,
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/ea1973b3-05f9-47a4-97dc-f8e5baf80bbb/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.554Z",
+    "updatedAt": "2025-11-27T01:50:34.554Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.554Z",
+      "updated_at": "2025-11-27T01:50:34.554Z"
+    }
+  },
+  {
+    "candidate_id": "32140912-7dc1-4890-ad78-50ec8f21e0a7",
+    "fullName": "Samiate Solange Cazembe",
+    "birthDate": "2018-06-16",
+    "level": "1° grado",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/32140912-7dc1-4890-ad78-50ec8f21e0a7/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.554Z",
+    "updatedAt": "2025-11-27T01:50:34.554Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.554Z",
+      "updated_at": "2025-11-27T01:50:34.554Z"
+    }
+  },
+  {
+    "candidate_id": "f13954d1-eb54-431e-a910-272f556c99c1",
+    "fullName": "Jesica Arnaldo",
+    "birthDate": "2019-09-02",
+    "level": "1° grado",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/f13954d1-eb54-431e-a910-272f556c99c1/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.554Z",
+    "updatedAt": "2025-11-27T01:50:34.554Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.554Z",
+      "updated_at": "2025-11-27T01:50:34.554Z"
+    }
+  },
+  {
+    "candidate_id": "5b2d745f-f853-49f7-ab42-662aabdd88cc",
+    "fullName": "Heleny Arnaldo",
+    "birthDate": "2021-09-17",
+    "level": "Jardín",
+    "city": "Lichinga",
+    "province": "Niassa",
+    "country": "Mozambique",
+    "photoPath": "candidates/5b2d745f-f853-49f7-ab42-662aabdd88cc/profile.jpg",
+    "status": "pending",
+    "period": "2025",
+    "notes": "",
+    "createdAt": "2025-11-27T01:50:34.554Z",
+    "updatedAt": "2025-11-27T01:50:34.554Z",
+    "createdBy": "",
+    "guardian": {
+      "firstName": "",
+      "lastName": "",
+      "relationship": "",
+      "phone": "",
+      "email": "",
+      "altContact": "",
+      "idDocument": "",
+      "consentData": false,
+      "consentDataDate": null,
+      "consentImage": false,
+      "consentImageDate": null
+    },
+    "household": {
+      "members": null,
+      "incomeRange": "",
+      "guardianEmployment": "",
+      "housing": "",
+      "vulnerabilities": [],
+      "previousSupport": ""
+    },
+    "application": {
+      "scholarshipType": "Completa",
+      "reason": "",
+      "priority": "media",
+      "state": "pendiente",
+      "evaluator": "",
+      "createdOn": "2025-11-27",
+      "updatedOn": "2025-11-27"
+    },
+    "documents": {
+      "birthCertPath": "",
+      "schoolCertPath": "",
+      "medicalPath": "",
+      "consentPath": ""
+    },
+    "audit": {
+      "created_by": "",
+      "updated_by": "",
+      "created_at": "2025-11-27T01:50:34.554Z",
+      "updated_at": "2025-11-27T01:50:34.554Z"
+    }
   }
 ]

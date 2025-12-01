@@ -199,6 +199,10 @@ const COPY = {
       formSubmit: "Enviar consulta",
       disclaimer: "Este formulario usa un servicio externo. Te responderemos a la brevedad.",
     },
+    footer: {
+      copyright: "Desarrollado por",
+      company: "NeuroIT Solutions",
+    },
   },
   pt: {
     nav: { 
@@ -395,6 +399,10 @@ const COPY = {
       formMsg: "Mensagem",
       formSubmit: "Enviar",
       disclaimer: "Este formulário usa um serviço externo. Responderemos o mais breve possível.",
+    },
+    footer: {
+      copyright: "Desenvolvido por",
+      company: "NeuroIT Solutions",
     },
   },
   en: {
@@ -593,6 +601,10 @@ const COPY = {
       formSubmit: "Send",
       disclaimer: "This form uses an external service. We will respond as soon as possible.",
     },
+    footer: {
+      copyright: "Developed by",
+      company: "NeuroIT Solutions",
+    },
   },
 };
 
@@ -652,7 +664,7 @@ export default function EscolaMaosUnidasSite() {
               }`}
               title="Español"
             >
-              🇦🇷
+              🇪🇸
             </button>
             <button 
               onClick={() => setLang('en')} 
@@ -983,7 +995,7 @@ export default function EscolaMaosUnidasSite() {
 
           <div className="text-center">
             <a 
-              href="mailto:contacto@corazondefuego.org?subject=Apadrinamiento%20Escola%20M%C3%A3os%20Unidas" 
+              href="mailto:becas@escolamaosunidas.com?subject=Apadrinamiento%20Escola%20M%C3%A3os%20Unidas" 
               className="inline-block px-8 py-4 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white text-lg font-semibold hover:from-olive-700 hover:to-olive-800 transition-colors shadow-lg"
             >
               🤝 {t.scholarships.cta}
@@ -1006,7 +1018,7 @@ export default function EscolaMaosUnidasSite() {
               <div className="mt-6">
                 <p className="font-semibold text-olive-700 mb-3">{t.contact.channels}</p>
                 <p>📸 <a className="underline hover:text-olive-600" href="https://www.instagram.com/corazondefuegoiglesia/" target="_blank" rel="noreferrer">{t.contact.instagram}</a></p>
-                <p>✉️ <a className="underline hover:text-olive-600" href="mailto:contacto@corazondefuego.org">{t.contact.email}</a></p>
+                <p>✉️ <a className="underline hover:text-olive-600" href="mailto:info@escolamaosunidas.com">{t.contact.email}</a></p>
               </div>
               <div className="mt-6">
                 <h3 className="font-semibold text-olive-700 mb-3">{t.contact.mapTitle}</h3>
@@ -1031,6 +1043,7 @@ export default function EscolaMaosUnidasSite() {
             </div>
             <div className="p-8">
               <form action="https://formspree.io/f/xyzzzzzz" method="POST" className="space-y-4">
+                <input type="hidden" name="_to" value="info@escolamaosunidas.com" />
                 <div>
                   <label className="text-sm font-medium text-neutral-700" htmlFor="name">{t.contact.formName}</label>
                   <input id="name" name="name" required className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100" />
@@ -1055,14 +1068,35 @@ export default function EscolaMaosUnidasSite() {
 
       {/* FOOTER */}
       <footer className="border-t border-olive-100 bg-gradient-to-b from-olive-50/30 to-white">
-        <div className="max-w-6xl mx-auto px-4 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <img src="/assets/logo-escola-maos-unidas.png" alt="Logo Escola Mãos Unidas" className="h-10 w-10 rounded-full object-cover" />
-            <p className="text-sm text-neutral-600">© {new Date().getFullYear()} Escola Mãos Unidas — Lichinga, Mozambique</p>
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <img src="/assets/logo-escola-maos-unidas.png" alt="Logo Escola Mãos Unidas" className="h-10 w-10 rounded-full object-cover" />
+              <p className="text-sm text-neutral-600">© {new Date().getFullYear()} Escola Mãos Unidas — Lichinga, Mozambique</p>
+            </div>
+            <a href="https://www.instagram.com/corazondefuegoiglesia/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm underline hover:text-olive-600 transition-colors">
+              📸 Instagram
+            </a>
           </div>
-          <a href="https://www.instagram.com/corazondefuegoiglesia/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm underline hover:text-olive-600 transition-colors">
-            📸 Instagram
-          </a>
+          <div className="text-center pt-4 border-t border-olive-100">
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <p className="text-xs text-neutral-500">
+                {t.footer.copyright}
+              </p>
+              <a 
+                href="mailto:piriz.dario+nit@gmail.com"
+                className="inline-flex items-center hover:opacity-80 transition-opacity"
+                title="Contactar NeuroIT Solutions"
+              >
+                <img 
+                  src="/assets/nit-logo.png" 
+                  alt="NeuroIT Solutions" 
+                  className="h-6 object-contain"
+                />
+              </a>
+              <span className="text-xs font-semibold text-olive-700">{t.footer.company}</span>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
