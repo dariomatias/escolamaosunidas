@@ -4,7 +4,9 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './config/firebase';
 import EscolaMaosUnidasSite from './site.jsx';
 import Login from './components/Login';
+import AdminDashboard from './components/AdminDashboard';
 import CandidatesCRUD from './components/CandidatesCRUD';
+import StudentsCRUD from './components/StudentsCRUD';
 
 function ProtectedRoute({ children }) {
   const [user, setUser] = useState(null);
@@ -43,7 +45,23 @@ export default function App() {
           path="/admin" 
           element={
             <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/candidates" 
+          element={
+            <ProtectedRoute>
               <CandidatesCRUD />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/students" 
+          element={
+            <ProtectedRoute>
+              <StudentsCRUD />
             </ProtectedRoute>
           } 
         />

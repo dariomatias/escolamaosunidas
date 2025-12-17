@@ -8,6 +8,7 @@ const COPY = {
       school: "La Escuela", 
       education: "Sistema Educativo", 
       students: "Los Estudiantes", 
+      socialAssistance: "Asistencia Social",
       scholarships: "Becas", 
       contact: "Contacto" 
     },
@@ -92,7 +93,7 @@ const COPY = {
       },
       mission: {
         title: "Nuestra Misión",
-        text: "Proporcionar educación académica de calidad, formación en valores bíblicos y alimentación diaria a niños que de otra manera no tendrían acceso a la educación. Creemos que cada niño merece una oportunidad de desarrollar su potencial y construir un futuro mejor.",
+        text: "Proporcionar educación académica de calidad y formación en valores bíblicos a niños que de otra manera no tendrían acceso a la educación. Creemos que cada niño merece una oportunidad de desarrollar su potencial y construir un futuro mejor.",
       },
       values: [
         { title: "Excelencia académica", text: "Compromiso con una educación de calidad que prepare a los estudiantes para el futuro." },
@@ -118,10 +119,13 @@ const COPY = {
       },
       subjectsTitle: "Materias que ofrecemos",
       subjects: [
-        { title: "Portugués", text: "Desarrollo de competencias comunicativas escritas y orales como lengua materna." },
+        { title: "Portugués", text: "Desarrollo de competencias comunicativas escritas y orales." },
         { title: "Matemáticas", text: "Pensamiento lógico y resolución de problemas prácticos." },
         { title: "Ciencias", text: "Exploración del mundo natural y científico." },
         { title: "Lectura y Arte", text: "Expresión creativa y fomento de la lectura." },
+        { title: "Educación física", text: "Desarrollo físico, coordinación y hábitos saludables." },
+        { title: "Inglés", text: "Desarrollo de competencias comunicativas en inglés." },
+        { title: "Informática", text: "Uso de computadoras y habilidades tecnológicas." },
       ],
       approach: {
         title: "Nuestro Enfoque",
@@ -134,7 +138,6 @@ const COPY = {
           "Fomento de hábitos de estudio",
           "Acompañamiento familiar",
           "Desarrollo de habilidades socioemocionales",
-          "Alimentación diaria nutritiva",
         ],
       },
     },
@@ -155,12 +158,33 @@ const COPY = {
         title: "El Impacto en sus vidas",
         items: [
           "Acceso a educación de calidad",
-          "Alimentación diaria nutritiva",
           "Desarrollo de autoestima y confianza",
           "Formación en valores cristianos",
           "Acompañamiento personalizado",
           "Preparación para futuros desafíos",
         ],
+      },
+    },
+    socialAssistance: {
+      heading: "Asistencia Social",
+      subtitle: "Servir a nuestra comunidad con amor y compasión",
+      description: "Como parte de nuestro programa escolar, realizamos visitas regulares a hospitales para llevar esperanza y apoyo a quienes más lo necesitan.",
+      visits: {
+        title: "Visitas Hospitalarias",
+        text: "Junto con nuestros maestros, los estudiantes de 4º, 5º y 6º grado (los más grandes) realizan visitas a pabellones de pediatría y maternidad en hospitales locales.",
+      },
+      donations: {
+        title: "Donaciones",
+        text: "En cada visita, nuestros estudiantes siempre llevan donaciones para las personas que las necesitan:",
+        items: [
+          "Jabón",
+          "Desodorante",
+          "Artículos de higiene personal",
+        ],
+      },
+      activities: {
+        title: "Actividades",
+        text: "Durante las visitas, los estudiantes realizan actividades y comparten momentos especiales con los pacientes, llevando alegría y compañía como parte de su formación en valores de servicio.",
       },
     },
     scholarships: {
@@ -169,7 +193,6 @@ const COPY = {
       description: "Tu aporte mensual cubre todos los gastos necesarios para que un niño reciba una educación completa:",
       bullets: [
         "Cuota escolar y materiales didácticos completos",
-        "Comidas diarias (almuerzo y, cuando sea necesario, desayuno)",
         "Atención médica básica y seguimiento de salud",
         "Acompañamiento espiritual y socioemocional",
       ],
@@ -209,6 +232,7 @@ const COPY = {
       school: "A Escola", 
       education: "Sistema Educacional", 
       students: "Os Estudantes", 
+      socialAssistance: "Assistência Social",
       scholarships: "Bolsas", 
       contact: "Contato" 
     },
@@ -293,7 +317,7 @@ const COPY = {
       },
       mission: {
         title: "Nossa Missão",
-        text: "Fornecer educação acadêmica de qualidade, formação em valores bíblicos e alimentação diária a crianças que, de outra forma, não teriam acesso à educação. Acreditamos que cada criança merece uma oportunidade de desenvolver seu potencial e construir um futuro melhor.",
+        text: "Fornecer educação acadêmica de qualidade e formação em valores bíblicos a crianças que, de outra forma, não teriam acesso à educação. Acreditamos que cada criança merece uma oportunidade de desenvolver seu potencial e construir um futuro melhor.",
       },
       values: [
         { title: "Excelência acadêmica", text: "Compromisso com educação de qualidade que prepare os estudantes para o futuro." },
@@ -319,10 +343,13 @@ const COPY = {
       },
       subjectsTitle: "Matérias que oferecemos",
       subjects: [
-        { title: "Português", text: "Desenvolvimento de competências comunicativas escritas e orais como língua materna." },
+        { title: "Português", text: "Desenvolvimento de competências comunicativas escritas e orais." },
         { title: "Matemática", text: "Pensamento lógico e resolução de problemas práticos." },
         { title: "Ciências", text: "Exploração do mundo natural e científico." },
         { title: "Leitura e Arte", text: "Expressão criativa e promoção da leitura." },
+        { title: "Ginástica", text: "Desenvolvimento físico, coordenação e hábitos saudáveis." },
+        { title: "Inglês", text: "Desenvolvimento de competências comunicativas em inglês." },
+        { title: "Informática", text: "Uso de computadores e habilidades tecnológicas." },
       ],
       approach: {
         title: "Nossa Abordagem",
@@ -335,7 +362,6 @@ const COPY = {
           "Promoção de hábitos de estudo",
           "Acompanhamento familiar",
           "Desenvolvimento de habilidades socioemocionais",
-          "Alimentação diária nutritiva",
         ],
       },
     },
@@ -356,12 +382,33 @@ const COPY = {
         title: "O Impacto em suas vidas",
         items: [
           "Acesso à educação de qualidade",
-          "Alimentação diária nutritiva",
           "Desenvolvimento de autoestima e confiança",
           "Formação em valores cristãos",
           "Acompanhamento personalizado",
           "Preparação para desafios futuros",
         ],
+      },
+    },
+    socialAssistance: {
+      heading: "Assistência Social",
+      subtitle: "Servir nossa comunidade com amor e compaixão",
+      description: "Como parte do nosso programa escolar, realizamos visitas regulares a hospitais para levar esperança e apoio a quem mais precisa.",
+      visits: {
+        title: "Visitas Hospitalares",
+        text: "Junto com nossos professores, os estudantes da 4ª, 5ª e 6ª classe (os mais velhos) realizam visitas a pavilhões de pediatria e maternidade em hospitais locais.",
+      },
+      donations: {
+        title: "Doações",
+        text: "Em cada visita, nossos estudantes sempre levam doações para as pessoas que precisam:",
+        items: [
+          "Sabão",
+          "Desodorante",
+          "Artigos de higiene pessoal",
+        ],
+      },
+      activities: {
+        title: "Atividades",
+        text: "Durante as visitas, os estudantes realizam atividades e compartilham momentos especiais com os pacientes, levando alegria e companhia como parte de sua formação em valores de serviço.",
       },
     },
     scholarships: {
@@ -370,7 +417,6 @@ const COPY = {
       description: "Sua contribuição mensal cobre todas as despesas necessárias para que uma criança receba educação completa:",
       bullets: [
         "Mensalidade e materiais didáticos completos",
-        "Refeições diárias (almoço e, quando necessário, café da manhã)",
         "Atenção médica básica e acompanhamento de saúde",
         "Acompanhamento espiritual e socioemocional",
       ],
@@ -410,6 +456,7 @@ const COPY = {
       school: "The School", 
       education: "Educational System", 
       students: "The Students", 
+      socialAssistance: "Social Assistance",
       scholarships: "Scholarships", 
       contact: "Contact" 
     },
@@ -494,7 +541,7 @@ const COPY = {
       },
       mission: {
         title: "Our Mission",
-        text: "To provide quality academic education, biblical values formation, and daily nutrition to children who would otherwise not have access to education. We believe that every child deserves an opportunity to develop their potential and build a better future.",
+        text: "To provide quality academic education and biblical values formation to children who would otherwise not have access to education. We believe that every child deserves an opportunity to develop their potential and build a better future.",
       },
       values: [
         { title: "Academic excellence", text: "Commitment to quality education that prepares students for the future." },
@@ -520,10 +567,13 @@ const COPY = {
       },
       subjectsTitle: "Subjects we offer",
       subjects: [
-        { title: "Portuguese", text: "Development of written and oral communication skills as mother tongue." },
+        { title: "Portuguese", text: "Development of written and oral communication skills." },
         { title: "Mathematics", text: "Logical thinking and practical problem solving." },
         { title: "Sciences", text: "Exploration of the natural and scientific world." },
         { title: "Reading and Arts", text: "Creative expression and reading promotion." },
+        { title: "Gym", text: "Physical development, coordination, and healthy habits." },
+        { title: "English", text: "Development of English communication skills." },
+        { title: "Informatics", text: "Computer usage and technological skills." },
       ],
       approach: {
         title: "Our Approach",
@@ -536,7 +586,6 @@ const COPY = {
           "Promotion of study habits",
           "Family accompaniment",
           "Development of socio-emotional skills",
-          "Daily nutritious meals",
         ],
       },
     },
@@ -557,12 +606,33 @@ const COPY = {
         title: "The Impact on their lives",
         items: [
           "Access to quality education",
-          "Daily nutritious meals",
           "Development of self-esteem and confidence",
           "Formation in Christian values",
           "Personalized accompaniment",
           "Preparation for future challenges",
         ],
+      },
+    },
+    socialAssistance: {
+      heading: "Social Assistance",
+      subtitle: "Serving our community with love and compassion",
+      description: "As part of our school program, we regularly visit hospitals to bring hope and support to those who need it most.",
+      visits: {
+        title: "Hospital Visits",
+        text: "Together with our teachers, students from 4th, 5th, and 6th grade (the oldest) make visits to pediatric and maternity pavilions in local hospitals.",
+      },
+      donations: {
+        title: "Donations",
+        text: "On each visit, our students always bring donations for people in need:",
+        items: [
+          "Soap",
+          "Deodorant",
+          "Personal hygiene items",
+        ],
+      },
+      activities: {
+        title: "Activities",
+        text: "During the visits, students engage in activities and share special moments with patients, bringing joy and companionship as part of their formation in service values.",
       },
     },
     scholarships: {
@@ -571,7 +641,6 @@ const COPY = {
       description: "Your monthly contribution covers all necessary expenses for a child to receive complete education:",
       bullets: [
         "School fees and complete educational materials",
-        "Daily meals (lunch and, when necessary, breakfast)",
         "Basic medical care and health monitoring",
         "Spiritual and socio-emotional accompaniment",
       ],
@@ -617,7 +686,44 @@ export default function EscolaMaosUnidasSite() {
   const [showSponsorshipModal, setShowSponsorshipModal] = useState(false);
   const [sponsorshipData, setSponsorshipData] = useState({ firstName: '', lastName: '', email: '' });
   const [sponsorshipStatus, setSponsorshipStatus] = useState({ loading: false, success: false, error: '' });
+  const [showLangDropdown, setShowLangDropdown] = useState(false);
+  const [showEscolaDropdown, setShowEscolaDropdown] = useState(false);
+  const [escolaDropdownTimeout, setEscolaDropdownTimeout] = useState(null);
   const t = useMemo(() => COPY[lang], [lang]);
+
+  const languages = [
+    { code: 'pt', name: 'Português', flag: '🇵🇹' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' },
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+  ];
+
+  const currentLang = languages.find(l => l.code === lang) || languages[0];
+
+  const escolaMenuItems = [
+    { href: '#education', label: t.nav.education },
+    { href: '#students', label: t.nav.students },
+    { href: '#socialAssistance', label: t.nav.socialAssistance },
+  ];
+
+  // Close language dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showLangDropdown && !event.target.closest('.lang-dropdown-container')) {
+        setShowLangDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showLangDropdown]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (escolaDropdownTimeout) {
+        clearTimeout(escolaDropdownTimeout);
+      }
+    };
+  }, [escolaDropdownTimeout]);
 
   const heroImages = [
     "/assets/fachada_1.png",
@@ -638,7 +744,7 @@ export default function EscolaMaosUnidasSite() {
 
     try {
       // Obtener la URL de la función (se actualizará después del deploy)
-      const functionUrl = 'https://us-central1-escola-maos-unidas.cloudfunctions.net/sendContactEmail';
+      const functionUrl = 'https://sendcontactemail-zogw5ohfvq-uc.a.run.app';
       
       const response = await fetch(functionUrl, {
         method: 'POST',
@@ -675,7 +781,7 @@ export default function EscolaMaosUnidasSite() {
     setSponsorshipStatus({ loading: true, success: false, error: '' });
 
     try {
-      const functionUrl = 'https://us-central1-escola-maos-unidas.cloudfunctions.net/sendSponsorshipEmail';
+      const functionUrl = 'https://sendsponsorshipemail-zogw5ohfvq-uc.a.run.app';
       
       const response = await fetch(functionUrl, {
         method: 'POST',
@@ -717,48 +823,94 @@ export default function EscolaMaosUnidasSite() {
             <img src="/assets/logo-escola-maos-unidas.png" alt="Logo Escola Mãos Unidas" className="h-10 w-10 rounded-full object-cover" />
             <span className="font-extrabold tracking-tight text-lg bg-gradient-to-r from-olive-700 to-olive-600 bg-clip-text text-transparent">Escola Mãos Unidas</span>
           </div>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <a href="#school" className="hover:text-olive-600 transition-colors">{t.nav.school}</a>
-            <a href="#education" className="hover:text-olive-600 transition-colors">{t.nav.education}</a>
-            <a href="#students" className="hover:text-olive-600 transition-colors">{t.nav.students}</a>
+          <nav className="hidden md:flex items-center gap-10 text-sm">
+            <div 
+              className="escola-dropdown-container relative"
+              onMouseEnter={() => {
+                if (escolaDropdownTimeout) {
+                  clearTimeout(escolaDropdownTimeout);
+                  setEscolaDropdownTimeout(null);
+                }
+                setShowEscolaDropdown(true);
+              }}
+              onMouseLeave={() => {
+                const timeout = setTimeout(() => {
+                  setShowEscolaDropdown(false);
+                }, 300); // 300ms delay before closing
+                setEscolaDropdownTimeout(timeout);
+              }}
+            >
+              <a 
+                href="#school"
+                className="flex items-center gap-1 hover:text-olive-600 transition-colors"
+              >
+                {t.nav.school}
+                <svg className={`w-4 h-4 transition-transform ${showEscolaDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </a>
+              {showEscolaDropdown && (
+                <div 
+                  className="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-olive-100 py-1 z-50"
+                  onMouseEnter={() => {
+                    if (escolaDropdownTimeout) {
+                      clearTimeout(escolaDropdownTimeout);
+                      setEscolaDropdownTimeout(null);
+                    }
+                  }}
+                >
+                  {escolaMenuItems.map((item, index) => (
+                    <a
+                      key={index}
+                      href={item.href}
+                      className="block px-4 py-2 text-sm text-neutral-700 hover:bg-olive-50 transition-colors"
+                    >
+                      {item.label}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
             <a href="#scholarships" className="hover:text-olive-600 transition-colors">{t.nav.scholarships}</a>
             <a href="#contact" className="hover:text-olive-600 transition-colors">{t.nav.contact}</a>
           </nav>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setLang('pt')} 
-              className={`px-3 py-2 rounded-lg border text-xl transition-colors ${
-                lang === 'pt' 
-                  ? 'border-olive-400 bg-olive-50' 
-                  : 'border-olive-200 hover:bg-olive-50'
-              }`}
-              title="Português"
-            >
-              🇵🇹
-            </button>
-            <button 
-              onClick={() => setLang('es')} 
-              className={`px-3 py-2 rounded-lg border text-xl transition-colors ${
-                lang === 'es' 
-                  ? 'border-olive-400 bg-olive-50' 
-                  : 'border-olive-200 hover:bg-olive-50'
-              }`}
-              title="Español"
-            >
-              🇪🇸
-            </button>
-            <button 
-              onClick={() => setLang('en')} 
-              className={`px-3 py-2 rounded-lg border text-xl transition-colors ${
-                lang === 'en' 
-                  ? 'border-olive-400 bg-olive-50' 
-                  : 'border-olive-200 hover:bg-olive-50'
-              }`}
-              title="English"
-            >
-              🇺🇸
-            </button>
-            <button onClick={() => setShowSponsorshipModal(true)} className="px-4 py-2 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white text-sm hover:from-olive-700 hover:to-olive-800 transition-colors">🤝 {t.hero.ctaPrimary}</button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowSponsorshipModal(true)} className="px-4 py-2 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white text-sm hover:from-olive-700 hover:to-olive-800 transition-colors whitespace-nowrap">🤝 {t.hero.ctaPrimary}</button>
+            <div className="lang-dropdown-container relative">
+              <button 
+                onClick={() => setShowLangDropdown(!showLangDropdown)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-olive-200 hover:bg-olive-50 transition-colors"
+                title={currentLang.name}
+              >
+                <span className="text-xl">{currentLang.flag}</span>
+                <span className="text-sm text-neutral-700 hidden sm:inline">{currentLang.name}</span>
+                <svg className={`w-4 h-4 text-neutral-600 transition-transform ${showLangDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showLangDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-olive-100 py-1 z-50">
+                  {languages.map((language) => (
+                    <button
+                      key={language.code}
+                      onClick={() => {
+                        setLang(language.code);
+                        setShowLangDropdown(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-olive-50 transition-colors ${
+                        lang === language.code ? 'bg-olive-50 text-olive-700 font-medium' : 'text-neutral-700'
+                      }`}
+                    >
+                      <span className="text-xl">{language.flag}</span>
+                      <span>{language.name}</span>
+                      {lang === language.code && (
+                        <span className="ml-auto text-olive-600">✓</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -1035,6 +1187,48 @@ export default function EscolaMaosUnidasSite() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SOCIAL ASSISTANCE */}
+      <section id="socialAssistance" className="py-20 bg-gradient-to-br from-olive-50/30 to-stone-100/50 relative">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-olive-300/50 to-transparent"></div>
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="mb-12 text-center">
+            <h2 className="text-4xl font-bold mb-4 text-olive-800">{t.socialAssistance.heading}</h2>
+            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">{t.socialAssistance.subtitle}</p>
+          </div>
+
+          <div className="mb-8">
+            <div className="bg-white rounded-2xl p-8 border border-olive-100 shadow-sm">
+              <p className="text-neutral-700 mb-6 leading-relaxed text-center max-w-3xl mx-auto">{t.socialAssistance.description}</p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white rounded-2xl p-6 border border-olive-100 shadow-sm">
+              <h3 className="text-xl font-bold mb-4 text-olive-700">{t.socialAssistance.visits.title}</h3>
+              <p className="text-neutral-700 text-sm leading-relaxed">{t.socialAssistance.visits.text}</p>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-6 border border-olive-100 shadow-sm">
+              <h3 className="text-xl font-bold mb-4 text-olive-700">{t.socialAssistance.donations.title}</h3>
+              <p className="text-neutral-700 text-sm mb-3 leading-relaxed">{t.socialAssistance.donations.text}</p>
+              <ul className="space-y-2">
+                {t.socialAssistance.donations.items.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="text-olive-600 mt-0.5">•</span>
+                    <span className="text-neutral-700 text-sm">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-6 border border-olive-100 shadow-sm">
+              <h3 className="text-xl font-bold mb-4 text-olive-700">{t.socialAssistance.activities.title}</h3>
+              <p className="text-neutral-700 text-sm leading-relaxed">{t.socialAssistance.activities.text}</p>
             </div>
           </div>
         </div>

@@ -34,6 +34,23 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     
+    // Sponsors collection - only authenticated admins can access
+    match /sponsors/{sponsorId} {
+      // Only authenticated users can read and write sponsors
+      allow read, write: if request.auth != null;
+    }
+    
+    // Students collection - only authenticated admins can access
+    match /students/{studentId} {
+      // Only authenticated users can read and write students
+      allow read, write: if request.auth != null;
+      
+      // Payments subcollection for each student
+      match /payments/{paymentId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+    
     // Deny all other access
     match /{document=**} {
       allow read, write: if false;

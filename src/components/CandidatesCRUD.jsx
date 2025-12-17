@@ -1,15 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, query, orderBy } from 'firebase/firestore';
-import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, auth, storage } from '../config/firebase';
+import { db, storage, auth } from '../config/firebase';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { searchSponsors, createSponsor, getSponsorById } from '../services/sponsors-api';
+import { createOrUpdateStudentFromCandidate, updateStudentStatusByCandidateId } from '../services/students-api';
+import AdminNavbar from './AdminNavbar';
 import {
   ADMIN_TRANSLATIONS,
   ADMIN_DEFAULT_LOCALE,
-  ADMIN_LOCALE_OPTIONS,
   ADMIN_LOCALE_STORAGE_KEY,
 } from '../i18n/adminTranslations';
 
@@ -42,9 +43,16 @@ export default function CandidatesCRUD() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeTab, setActiveTab] = useState('list');
   const [locale, setLocale] = useState(() => getInitialAdminLocale());
-  const [currentUser, setCurrentUser] = useState(() => auth.currentUser);
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [showSponsorModal, setShowSponsorModal] = useState(false);
+  const [pendingCandidateUpdate, setPendingCandidateUpdate] = useState(null);
+  const [searchText, setSearchText] = useState('');
+  const [filterLevel, setFilterLevel] = useState('');
+  const [filterPeriod, setFilterPeriod] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage, setRecordsPerPage] = useState(25);
   const navigate = useNavigate();
   const t = ADMIN_TRANSLATIONS[locale] || ADMIN_TRANSLATIONS[ADMIN_DEFAULT_LOCALE];
   const statusLabels = t.statuses;
@@ -98,18 +106,6 @@ export default function CandidatesCRUD() {
     return '';
   };
 
-  const adminDisplayName = currentUser?.displayName?.trim() || '';
-  const adminEmail = currentUser?.email || '';
-  const adminName = adminDisplayName || adminEmail || t.header.adminFallback;
-  const adminInitials = (() => {
-    if (adminDisplayName) {
-      const parts = adminDisplayName.split(' ').filter(Boolean);
-      if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-      return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
-    }
-    if (adminEmail) return adminEmail.charAt(0).toUpperCase();
-    return t.header.adminFallback.charAt(0).toUpperCase();
-  })();
 
   const fetchCandidates = async () => {
     try {
@@ -141,8 +137,60 @@ export default function CandidatesCRUD() {
     }
   };
 
+  // Get unique values for filter dropdowns
+  const uniqueLevels = useMemo(() => {
+    const levels = candidates.map(c => c.level).filter(Boolean);
+    return [...new Set(levels)].sort();
+  }, [candidates]);
+
+  const uniquePeriods = useMemo(() => {
+    const periods = candidates.map(c => c.period).filter(Boolean);
+    return [...new Set(periods)].sort();
+  }, [candidates]);
+
+  const handleClearFilters = () => {
+    setSearchText('');
+    setFilterLevel('');
+    setFilterPeriod('');
+    setFilterStatus('');
+  };
+
   const sortedCandidates = useMemo(() => {
-    const sorted = [...candidates];
+    // First, apply filters
+    let filtered = candidates.filter(candidate => {
+      // Search filter (name and last name)
+      if (searchText.trim()) {
+        const searchLower = searchText.toLowerCase().trim();
+        const fullName = getCandidateDisplayName(candidate).toLowerCase();
+        const firstName = (candidate.firstName || '').toLowerCase();
+        const lastName = (candidate.lastName || '').toLowerCase();
+        if (!fullName.includes(searchLower) && 
+            !firstName.includes(searchLower) && 
+            !lastName.includes(searchLower)) {
+          return false;
+        }
+      }
+
+      // Level filter
+      if (filterLevel && candidate.level !== filterLevel) {
+        return false;
+      }
+
+      // Period filter
+      if (filterPeriod && candidate.period !== filterPeriod) {
+        return false;
+      }
+
+      // Status filter
+      if (filterStatus && candidate.status !== filterStatus) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Then, sort the filtered results
+    const sorted = [...filtered];
     sorted.sort((a, b) => {
       let aValue, bValue;
 
@@ -178,17 +226,22 @@ export default function CandidatesCRUD() {
       return 0;
     });
     return sorted;
-  }, [candidates, sortField, sortDirection, statusLabels, priorityLabels]);
+  }, [candidates, sortField, sortDirection, statusLabels, priorityLabels, searchText, filterLevel, filterPeriod, filterStatus]);
+
+  // Pagination logic
+  const totalRecords = sortedCandidates.length;
+  const totalPages = recordsPerPage === 'all' ? 1 : Math.ceil(totalRecords / recordsPerPage);
+  const startIndex = recordsPerPage === 'all' ? 0 : (currentPage - 1) * recordsPerPage;
+  const endIndex = recordsPerPage === 'all' ? totalRecords : startIndex + recordsPerPage;
+  const paginatedCandidates = recordsPerPage === 'all' ? sortedCandidates : sortedCandidates.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchText, filterLevel, filterPeriod, filterStatus, recordsPerPage]);
 
   useEffect(() => {
     fetchCandidates();
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-    });
-    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -196,10 +249,6 @@ export default function CandidatesCRUD() {
       localStorage.setItem(ADMIN_LOCALE_STORAGE_KEY, locale);
     }
   }, [locale]);
-
-  const handleLocaleChange = (newLocale) => {
-    setLocale(newLocale);
-  };
 
   const handleEdit = (candidate) => {
     setEditingCandidate(candidate);
@@ -209,21 +258,144 @@ export default function CandidatesCRUD() {
     try {
       setIsLoading(true);
       const { id, firstName, lastName, fullName, ...rest } = updatedData;
+      
+      // Get current candidate state
+      const currentCandidate = candidates.find(c => c.id === id);
+      // Check if status is changing from "pending" to "active" (approved)
+      const isStatusChangingFromPendingToActive = currentCandidate?.status === 'pending' && rest.status === 'active';
+      // Check if status is changing from "active" to another status
+      const isStatusChangingFromActive = currentCandidate?.status === 'active' && rest.status !== 'active';
+      // Check if status is changing to "active" from another status (not pending)
+      const isStatusChangingToActive = currentCandidate?.status !== 'active' && rest.status === 'active' && currentCandidate?.status !== 'pending';
+      const hasSponsorId = currentCandidate?.sponsorId;
+      
+      // If changing FROM pending TO active (approved) and no sponsor, prompt for sponsor
+      if (isStatusChangingFromPendingToActive && !hasSponsorId) {
+        // Store the update data and show sponsor modal
+        setPendingCandidateUpdate({ id, firstName, lastName, fullName, ...rest });
+        setShowSponsorModal(true);
+        return; // Don't save yet, wait for sponsor info
+      }
+      
+      // If changing FROM active to another status, clear sponsor assignment and update student to inactive
+      const updateData = { ...rest };
+      if (isStatusChangingFromActive) {
+        updateData.sponsorId = null;
+        updateData.sponsorAssignedDate = null;
+        // Optionally show a confirmation
+        if (hasSponsorId && !confirm(t.sponsor.clearSponsorConfirm || 'El candidato ya no está activo. ¿Deseas eliminar la asignación del patrocinador?')) {
+          setIsLoading(false);
+          return; // User cancelled
+        }
+        
+        // Update associated student status to inactive
+        try {
+          await updateStudentStatusByCandidateId(id, 'inactive');
+        } catch (studentError) {
+          console.error('Error updating student status to inactive:', studentError);
+          // Don't block the candidate update if student update fails
+          alert('Candidato actualizado, pero hubo un error al actualizar el estado del estudiante. Por favor verifica.');
+        }
+      }
+      
       const candidateRef = doc(db, 'candidates', id);
       const computedFullName = `${(firstName || '').trim()} ${(lastName || '').trim()}`
         .replace(/\s+/g, ' ')
         .trim() || (fullName || '');
       await updateDoc(candidateRef, {
-        ...rest,
+        ...updateData,
         firstName: firstName || '',
         lastName: lastName || '',
         fullName: computedFullName,
         updatedAt: new Date().toISOString(),
       });
+      
+      // If candidate status changed to active (from pending or another status), create/update student
+      if ((isStatusChangingFromPendingToActive || isStatusChangingToActive) && currentCandidate) {
+        try {
+          let sponsorData = null;
+          if (updateData.sponsorId || currentCandidate.sponsorId) {
+            const sponsorId = updateData.sponsorId || currentCandidate.sponsorId;
+            try {
+              sponsorData = await getSponsorById(sponsorId);
+            } catch (sponsorError) {
+              console.error('Error fetching sponsor data:', sponsorError);
+              // Continue without sponsor data
+            }
+          }
+          
+          await createOrUpdateStudentFromCandidate(
+            { ...currentCandidate, ...updateData, firstName, lastName, fullName: computedFullName },
+            sponsorData
+          );
+        } catch (studentError) {
+          console.error('Error creating/updating student from candidate:', studentError);
+          // Don't block the candidate update if student creation fails
+          alert('Candidato actualizado, pero hubo un error al crear/actualizar el estudiante. Por favor verifica.');
+        }
+      }
+      
       setEditingCandidate(null);
       await fetchCandidates();
     } catch (error) {
       console.error('Error updating candidate:', error);
+      alert(t.errors.update);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSponsorSave = async (sponsorId) => {
+    try {
+      setIsLoading(true);
+      if (!pendingCandidateUpdate) return;
+      
+      const { id, firstName, lastName, fullName, ...rest } = pendingCandidateUpdate;
+      const candidateRef = doc(db, 'candidates', id);
+      const computedFullName = `${(firstName || '').trim()} ${(lastName || '').trim()}`
+        .replace(/\s+/g, ' ')
+        .trim() || (fullName || '');
+      
+      const sponsorAssignedDate = new Date().toISOString();
+      await updateDoc(candidateRef, {
+        ...rest,
+        firstName: firstName || '',
+        lastName: lastName || '',
+        fullName: computedFullName,
+        sponsorId: sponsorId,
+        sponsorAssignedDate: sponsorAssignedDate,
+        status: 'active', // Ensure status is active when sponsor is assigned
+        updatedAt: new Date().toISOString(),
+      });
+      
+      // Create/update student from approved candidate
+      try {
+        const sponsorData = await getSponsorById(sponsorId);
+        await createOrUpdateStudentFromCandidate(
+          { 
+            id, 
+            firstName, 
+            lastName, 
+            fullName: computedFullName, 
+            ...rest,
+            sponsorId,
+            sponsorAssignedDate,
+            status: 'active'
+          },
+          sponsorData
+        );
+      } catch (studentError) {
+        console.error('Error creating/updating student from candidate:', studentError);
+        // Don't block the candidate update if student creation fails
+        alert('Candidato actualizado con patrocinador, pero hubo un error al crear/actualizar el estudiante. Por favor verifica.');
+      }
+      
+      setShowSponsorModal(false);
+      setPendingCandidateUpdate(null);
+      setEditingCandidate(null);
+      await fetchCandidates();
+    } catch (error) {
+      console.error('Error updating candidate with sponsor:', error);
       alert(t.errors.update);
     } finally {
       setIsLoading(false);
@@ -447,6 +619,7 @@ export default function CandidatesCRUD() {
 
       yPosition = addFormField('Nombres', candidate.firstName || '', yPosition);
       yPosition = addFormField('Apellidos', candidate.lastName || '', yPosition);
+      yPosition = addFormField('Documento de Identidad', candidate.documentId || '', yPosition);
       yPosition = addFormField('Nombre Completo', candidate.fullName || fullName, yPosition);
       
       if (candidate.birthDate) {
@@ -614,10 +787,6 @@ export default function CandidatesCRUD() {
     }
   };
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    navigate('/login');
-  };
 
   if (loading) {
     return (
@@ -631,65 +800,25 @@ export default function CandidatesCRUD() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 py-8 px-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-olive-100 p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-olive-800 mb-2">{t.header.title}</h1>
-              <p className="text-neutral-600">{t.header.subtitle}</p>
-            </div>
-            <div className="flex flex-col items-end md:flex-row md:items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase text-neutral-500">{t.common.languageLabel}</span>
-                <div className="flex items-center gap-1 bg-olive-50 border border-olive-100 rounded-full p-1">
-                  {ADMIN_LOCALE_OPTIONS.map((option) => (
-                    <button
-                      key={option.code}
-                      onClick={() => handleLocaleChange(option.code)}
-                      className={`px-2 py-1 text-sm rounded-full transition-colors ${
-                        locale === option.code
-                          ? 'bg-olive-600 text-white shadow-sm'
-                          : 'text-olive-700 hover:bg-olive-100'
-                      }`}
-                      aria-label={option.label}
-                    >
-                      <span className="text-lg leading-none">{option.flag}</span>
-                    </button>
-                  ))}
-                </div>
+    <div className="min-h-screen bg-stone-50">
+      <AdminNavbar onLocaleChange={setLocale} />
+      <div className="py-8 px-4">
+        <div className="max-w-7xl mx-auto">
+          {/* Title and Add Button */}
+          <div className="bg-white rounded-2xl shadow-sm border border-olive-100 p-6 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-olive-800 mb-2">{t.header.title}</h1>
+                <p className="text-neutral-600">{t.header.subtitle}</p>
               </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="px-6 py-2 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white font-semibold hover:from-olive-700 hover:to-olive-800 transition-colors"
-                >
-                  {t.buttons.addCandidate}
-                </button>
-                {currentUser && (
-                  <div className="flex items-center gap-3 px-3 py-2 border border-olive-100 rounded-xl bg-olive-50/40">
-                    <div className="w-10 h-10 rounded-full bg-olive-600 text-white flex items-center justify-center text-sm font-semibold">
-                      {adminInitials}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-semibold text-olive-800">{adminName}</div>
-                      {adminEmail && (
-                        <div className="text-xs text-neutral-500">{adminEmail}</div>
-                      )}
-                    </div>
-                    <button
-                      onClick={handleLogout}
-                      className="px-3 py-1 rounded-lg text-sm font-semibold text-olive-700 hover:bg-olive-100 transition-colors"
-                    >
-                      {t.buttons.logout}
-                    </button>
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-6 py-2 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white font-semibold hover:from-olive-700 hover:to-olive-800 transition-colors"
+              >
+                {t.buttons.addCandidate}
+              </button>
             </div>
           </div>
-        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -739,6 +868,103 @@ export default function CandidatesCRUD() {
 
         {/* Candidates Table */}
         {activeTab === 'list' && (
+        <>
+        {/* Filters Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-olive-100 p-6 mb-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-olive-800 mb-4">{t.filters?.filterBy || 'Filtrar por'}</h2>
+            
+            {/* Search and Filters Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* Search Input */}
+              <div className="lg:col-span-2">
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  {t.filters?.search || 'Buscar'}
+                </label>
+                <input
+                  type="text"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  placeholder={t.filters?.searchPlaceholder || 'Buscar por nombre o apellido...'}
+                  className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900"
+                />
+              </div>
+
+              {/* Level Filter */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  {t.filters?.level || 'Nivel'}
+                </label>
+                <select
+                  value={filterLevel}
+                  onChange={(e) => setFilterLevel(e.target.value)}
+                  className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white"
+                >
+                  <option value="">{t.filters?.allLevels || 'Todos los niveles'}</option>
+                  {uniqueLevels.map(level => (
+                    <option key={level} value={level}>{level}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Period Filter */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  {t.filters?.period || 'Periodo'}
+                </label>
+                <select
+                  value={filterPeriod}
+                  onChange={(e) => setFilterPeriod(e.target.value)}
+                  className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white"
+                >
+                  <option value="">{t.filters?.allPeriods || 'Todos los periodos'}</option>
+                  {uniquePeriods.map(period => (
+                    <option key={period} value={period}>{period}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  {t.filters?.status || 'Estado'}
+                </label>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white"
+                >
+                  <option value="">{t.filters?.allStatuses || 'Todos los estados'}</option>
+                  {STATUS_OPTIONS.map(status => {
+                    const label = statusLabels[status] || status;
+                    const capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1);
+                    return (
+                      <option key={status} value={status}>{capitalizedLabel}</option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            {(searchText || filterLevel || filterPeriod || filterStatus) && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={handleClearFilters}
+                  className="px-4 py-2 text-sm font-medium text-olive-700 hover:text-olive-800 hover:bg-olive-50 rounded-lg border border-olive-200 transition-colors"
+                >
+                  {t.filters?.clearFilters || 'Limpiar filtros'}
+                </button>
+              </div>
+            )}
+
+            {/* Results Count */}
+            <div className="mt-4 text-sm text-neutral-600">
+              {sortedCandidates.length} {sortedCandidates.length === 1 ? (t.filters?.result || 'resultado') : (t.filters?.results || 'resultados')}
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white rounded-2xl shadow-sm border border-olive-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -869,7 +1095,7 @@ export default function CandidatesCRUD() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-olive-100">
-                {sortedCandidates.map((candidate) => (
+                {paginatedCandidates.map((candidate) => (
                   <tr key={candidate.id} className="hover:bg-olive-50/30 transition-colors">
                     <td className="px-6 py-4">
                       <div 
@@ -956,13 +1182,67 @@ export default function CandidatesCRUD() {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination and Count */}
+          <div className="px-6 py-4 bg-white border-t border-olive-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-neutral-600">
+              {t.filters?.showing || 'Mostrando'} {totalRecords > 0 ? startIndex + 1 : 0} - {Math.min(endIndex, totalRecords)} {t.filters?.of || 'de'} {totalRecords} {t.filters?.results || 'resultados'}
+            </div>
+            
+            <div className="flex items-center gap-4">
+              {/* Records per page selector */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-neutral-600">{t.table?.recordsPerPage || 'Registros por página'}:</label>
+                <select
+                  value={recordsPerPage}
+                  onChange={(e) => {
+                    setRecordsPerPage(e.target.value === 'all' ? 'all' : parseInt(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-3 py-1.5 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white text-sm"
+                >
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="all">{t.table?.all || 'TODOS'}</option>
+                </select>
+              </div>
+              
+              {/* Pagination controls */}
+              {recordsPerPage !== 'all' && totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 text-sm border border-olive-200 rounded-lg hover:bg-olive-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {t.common?.previous || 'Anterior'}
+                  </button>
+                  
+                  <span className="text-sm text-neutral-600">
+                    {t.common?.page || 'Página'} {currentPage} {t.common?.of || 'de'} {totalPages}
+                  </span>
+                  
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 text-sm border border-olive-200 rounded-lg hover:bg-olive-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {t.common?.next || 'Siguiente'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
+        </>
         )}
 
         {/* Reports Section */}
         {activeTab === 'reports' && (
           <ReportsSection candidates={candidates} t={t} statusLabels={statusLabels} priorityLabels={priorityLabels} />
         )}
+        </div>
       </div>
 
       {/* View Details Modal */}
@@ -990,6 +1270,19 @@ export default function CandidatesCRUD() {
           t={t}
           statusOptions={STATUS_OPTIONS}
           priorityOptions={PRIORITY_OPTIONS}
+        />
+      )}
+
+      {/* Sponsor Info Modal */}
+      {showSponsorModal && pendingCandidateUpdate && (
+        <SponsorInfoModal
+          candidate={pendingCandidateUpdate}
+          onClose={() => {
+            setShowSponsorModal(false);
+            setPendingCandidateUpdate(null);
+          }}
+          onSave={handleSponsorSave}
+          t={t}
         />
       )}
 
@@ -1036,6 +1329,427 @@ export default function CandidatesCRUD() {
   );
 }
 
+// Sponsor Info Modal Component
+function SponsorInfoModal({ candidate, onClose, onSave, t }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [selectedSponsor, setSelectedSponsor] = useState(null);
+  const [sponsorData, setSponsorData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    country: '',
+    notes: '',
+  });
+  const [errors, setErrors] = useState({});
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Search for sponsors
+  useEffect(() => {
+    const performSearch = async () => {
+      if (searchTerm.trim().length < 2) {
+        setSearchResults([]);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const results = await searchSponsors(searchTerm);
+        setSearchResults(results);
+      } catch (error) {
+        console.error('Error searching sponsors:', error);
+        alert('Error al buscar patrocinadores');
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const timeoutId = setTimeout(performSearch, 300); // Debounce search
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const validate = () => {
+    const newErrors = {};
+    if (!sponsorData.firstName.trim()) {
+      newErrors.firstName = t.sponsor.required;
+    }
+    if (!sponsorData.lastName.trim()) {
+      newErrors.lastName = t.sponsor.required;
+    }
+    if (!sponsorData.email.trim()) {
+      newErrors.email = t.sponsor.required;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sponsorData.email)) {
+      newErrors.email = 'Email inválido';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSelectSponsor = (sponsor) => {
+    setSelectedSponsor(sponsor);
+    setSearchTerm('');
+    setSearchResults([]);
+  };
+
+  const handleCreateSponsor = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    setIsCreating(true);
+    try {
+      const sponsorId = await createSponsor(sponsorData);
+      onSave(sponsorId);
+    } catch (error) {
+      console.error('Error creating sponsor:', error);
+      alert('Error al crear patrocinador');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleUseSelectedSponsor = () => {
+    if (selectedSponsor) {
+      onSave(selectedSponsor.id);
+    }
+  };
+
+  const candidateName = candidate.firstName && candidate.lastName
+    ? `${candidate.firstName} ${candidate.lastName}`
+    : candidate.fullName || 'Candidato';
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-olive-100 px-6 py-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-olive-800">{t.sponsor.title}</h2>
+            <p className="text-sm text-neutral-600 mt-1">
+              {t.sponsor.description} - <span className="font-semibold">{candidateName}</span>
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-neutral-400 hover:text-neutral-600 text-2xl font-bold"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="p-6">
+          {!selectedSponsor && !showCreateForm && (
+            <div className="space-y-4">
+              {/* Search Section */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  {t.sponsor.searchLabel || 'Buscar Patrocinador'}
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder={t.sponsor.searchPlaceholder || 'Buscar por nombre o apellido...'}
+                    className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:border-olive-400 focus:ring-2 focus:ring-olive-100"
+                  />
+                  {isSearching && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="w-5 h-5 border-2 border-olive-600 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Search Results */}
+              {searchResults.length > 0 && (
+                <div className="border border-olive-200 rounded-lg max-h-60 overflow-y-auto">
+                  <div className="p-2 bg-olive-50 text-sm font-semibold text-olive-800">
+                    {t.sponsor.searchResults || 'Resultados de búsqueda'}
+                  </div>
+                  {searchResults.map((sponsor) => (
+                    <button
+                      key={sponsor.id}
+                      onClick={() => handleSelectSponsor(sponsor)}
+                      className="w-full text-left px-4 py-3 hover:bg-olive-50 border-b border-olive-100 last:border-b-0 transition-colors"
+                    >
+                      <div className="font-semibold text-neutral-800">
+                        {sponsor.firstName} {sponsor.lastName}
+                      </div>
+                      {sponsor.email && (
+                        <div className="text-sm text-neutral-600">{sponsor.email}</div>
+                      )}
+                      {sponsor.phone && (
+                        <div className="text-sm text-neutral-600">{sponsor.phone}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {searchTerm.length >= 2 && !isSearching && searchResults.length === 0 && (
+                <div className="text-center py-4 text-neutral-500">
+                  {t.sponsor.noResults || 'No se encontraron patrocinadores'}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t border-olive-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(true)}
+                  className="flex-1 px-4 py-2 border border-olive-300 rounded-lg hover:bg-olive-50 text-olive-700 font-semibold transition-colors"
+                >
+                  {t.sponsor.createNew || 'Crear Nuevo Patrocinador'}
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-100 text-neutral-700 font-semibold transition-colors"
+                >
+                  {t.sponsor.cancel}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Selected Sponsor Display */}
+          {selectedSponsor && !showCreateForm && (
+            <div className="space-y-4">
+              <div className="bg-olive-50 border border-olive-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold text-olive-800">
+                    {t.sponsor.selectedSponsor || 'Patrocinador Seleccionado'}
+                  </h3>
+                  <button
+                    onClick={() => setSelectedSponsor(null)}
+                    className="text-sm text-olive-600 hover:text-olive-800"
+                  >
+                    {t.sponsor.change || 'Cambiar'}
+                  </button>
+                </div>
+                <div className="space-y-1">
+                  <div className="font-semibold text-neutral-800">
+                    {selectedSponsor.firstName} {selectedSponsor.lastName}
+                  </div>
+                  {selectedSponsor.email && (
+                    <div className="text-sm text-neutral-600">📧 {selectedSponsor.email}</div>
+                  )}
+                  {selectedSponsor.phone && (
+                    <div className="text-sm text-neutral-600">📞 {selectedSponsor.phone}</div>
+                  )}
+                  {selectedSponsor.city && (
+                    <div className="text-sm text-neutral-600">📍 {selectedSponsor.city}{selectedSponsor.country ? `, ${selectedSponsor.country}` : ''}</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-olive-100">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-100 text-neutral-700 font-semibold transition-colors"
+                >
+                  {t.sponsor.cancel}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUseSelectedSponsor}
+                  className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white font-semibold hover:from-olive-700 hover:to-olive-800 transition-colors shadow-md"
+                >
+                  {t.sponsor.useSelected || 'Usar este Patrocinador'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Create New Sponsor Form */}
+          {showCreateForm && (
+            <form onSubmit={handleCreateSponsor} className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-olive-800">
+                  {t.sponsor.createNew || 'Crear Nuevo Patrocinador'}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setSponsorData({
+                      firstName: '',
+                      lastName: '',
+                      email: '',
+                      phone: '',
+                      address: '',
+                      city: '',
+                      country: '',
+                      notes: '',
+                    });
+                    setErrors({});
+                  }}
+                  className="text-sm text-olive-600 hover:text-olive-800"
+                >
+                  {t.sponsor.cancel || 'Cancelar'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    {t.sponsor.firstName} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={sponsorData.firstName}
+                    onChange={(e) => setSponsorData({ ...sponsorData, firstName: e.target.value })}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-olive-100 ${
+                      errors.firstName ? 'border-red-300' : 'border-olive-200 focus:border-olive-400'
+                    }`}
+                    required
+                  />
+                  {errors.firstName && (
+                    <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    {t.sponsor.lastName} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={sponsorData.lastName}
+                    onChange={(e) => setSponsorData({ ...sponsorData, lastName: e.target.value })}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-olive-100 ${
+                      errors.lastName ? 'border-red-300' : 'border-olive-200 focus:border-olive-400'
+                    }`}
+                    required
+                  />
+                  {errors.lastName && (
+                    <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    {t.sponsor.email} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={sponsorData.email}
+                    onChange={(e) => setSponsorData({ ...sponsorData, email: e.target.value })}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-olive-100 ${
+                      errors.email ? 'border-red-300' : 'border-olive-200 focus:border-olive-400'
+                    }`}
+                    required
+                  />
+                  {errors.email && (
+                    <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    {t.sponsor.phone}
+                  </label>
+                  <input
+                    type="tel"
+                    value={sponsorData.phone}
+                    onChange={(e) => setSponsorData({ ...sponsorData, phone: e.target.value })}
+                    className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:border-olive-400 focus:ring-2 focus:ring-olive-100"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  {t.sponsor.address}
+                </label>
+                <input
+                  type="text"
+                  value={sponsorData.address}
+                  onChange={(e) => setSponsorData({ ...sponsorData, address: e.target.value })}
+                  className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:border-olive-400 focus:ring-2 focus:ring-olive-100"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    {t.sponsor.city}
+                  </label>
+                  <input
+                    type="text"
+                    value={sponsorData.city}
+                    onChange={(e) => setSponsorData({ ...sponsorData, city: e.target.value })}
+                    className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:border-olive-400 focus:ring-2 focus:ring-olive-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    {t.sponsor.country}
+                  </label>
+                  <input
+                    type="text"
+                    value={sponsorData.country}
+                    onChange={(e) => setSponsorData({ ...sponsorData, country: e.target.value })}
+                    className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:border-olive-400 focus:ring-2 focus:ring-olive-100"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  {t.sponsor.notes}
+                </label>
+                <textarea
+                  value={sponsorData.notes}
+                  onChange={(e) => setSponsorData({ ...sponsorData, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:border-olive-400 focus:ring-2 focus:ring-olive-100"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-olive-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setSponsorData({
+                      firstName: '',
+                      lastName: '',
+                      email: '',
+                      phone: '',
+                      address: '',
+                      city: '',
+                      country: '',
+                      notes: '',
+                    });
+                    setErrors({});
+                  }}
+                  className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-100 text-neutral-700 font-semibold transition-colors"
+                >
+                  {t.sponsor.cancel}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreating}
+                  className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white font-semibold hover:from-olive-700 hover:to-olive-800 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCreating ? (t.common.loading || 'Guardando...') : (t.sponsor.create || 'Crear Patrocinador')}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Detail View Modal Component
 function CandidateDetailModal({ candidate, onClose, onEdit, onExportPDF, t, statusLabels, priorityLabels }) {
   const getCandidateDisplayName = (candidate) => {
@@ -1050,6 +1764,28 @@ function CandidateDetailModal({ candidate, onClose, onEdit, onExportPDF, t, stat
   const guardian = candidate.guardian || {};
   const household = candidate.household || {};
   const application = candidate.application || {};
+  const [sponsor, setSponsor] = useState(null);
+  const [loadingSponsor, setLoadingSponsor] = useState(false);
+
+  // Load sponsor if candidate has sponsorId
+  useEffect(() => {
+    const loadSponsor = async () => {
+      if (candidate.sponsorId) {
+        setLoadingSponsor(true);
+        try {
+          const sponsorData = await getSponsorById(candidate.sponsorId);
+          setSponsor(sponsorData);
+        } catch (error) {
+          console.error('Error loading sponsor:', error);
+        } finally {
+          setLoadingSponsor(false);
+        }
+      } else {
+        setSponsor(null);
+      }
+    };
+    loadSponsor();
+  }, [candidate.sponsorId]);
 
   const formatDate = (dateString) => {
     if (!dateString) return '(No especificado)';
@@ -1147,6 +1883,7 @@ function CandidateDetailModal({ candidate, onClose, onEdit, onExportPDF, t, stat
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <InfoField label={t.forms.firstName} value={candidate.firstName} />
               <InfoField label={t.forms.lastName} value={candidate.lastName} />
+              <InfoField label={t.forms.documentId || 'Documento de Identidad'} value={candidate.documentId || '-'} />
               <InfoField label="Nombre Completo" value={candidate.fullName || fullName} />
               <InfoField label={t.forms.birthDate} value={formatDate(candidate.birthDate)} />
               <InfoField label={t.forms.level} value={candidate.level} />
@@ -1214,6 +1951,39 @@ function CandidateDetailModal({ candidate, onClose, onEdit, onExportPDF, t, stat
               )}
             </div>
           </div>
+
+          {/* Información del Patrocinador */}
+          {loadingSponsor && (
+            <div className="mb-6">
+              <h4 className="text-xl font-bold text-olive-800 mb-4 pb-2 border-b border-olive-200">
+                {t.sponsor.heading}
+              </h4>
+              <div className="text-neutral-500">Cargando información del patrocinador...</div>
+            </div>
+          )}
+          {!loadingSponsor && sponsor && (
+            <div className="mb-6">
+              <h4 className="text-xl font-bold text-olive-800 mb-4 pb-2 border-b border-olive-200">
+                {t.sponsor.heading}
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InfoField label={t.sponsor.firstName} value={sponsor.firstName} />
+                <InfoField label={t.sponsor.lastName} value={sponsor.lastName} />
+                <InfoField label={t.sponsor.email} value={sponsor.email} />
+                <InfoField label={t.sponsor.phone} value={sponsor.phone} />
+                <InfoField label={t.sponsor.address} value={sponsor.address} />
+                <InfoField label={t.sponsor.city} value={sponsor.city} />
+                <InfoField label={t.sponsor.country} value={sponsor.country} />
+                <InfoField label="Fecha de Asignación" value={formatDate(candidate.sponsorAssignedDate)} />
+                {sponsor.notes && (
+                  <div className="md:col-span-2 py-3 border-b border-olive-100">
+                    <div className="text-sm font-semibold text-olive-700 mb-1">{t.sponsor.notes}</div>
+                    <div className="text-base text-neutral-800 whitespace-pre-wrap">{sponsor.notes}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Notas Generales */}
           {candidate.notes && (
@@ -1290,6 +2060,7 @@ function CandidateEditModal({ candidate, onClose, onSave, t, statusOptions = STA
       return {
         firstName: source.firstName || '',
         lastName: source.lastName || '',
+        documentId: source.documentId || '',
       };
     }
     const full = (source.fullName || '').trim();
@@ -1312,6 +2083,7 @@ function CandidateEditModal({ candidate, onClose, onSave, t, statusOptions = STA
     ...candidate,
     firstName: initialNames.firstName,
     lastName: initialNames.lastName,
+    documentId: candidate.documentId || initialNames.documentId || '',
     guardian: candidate.guardian || {},
     household: candidate.household || {},
     application: {
@@ -1392,6 +2164,13 @@ function CandidateEditModal({ candidate, onClose, onSave, t, statusOptions = STA
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!formData.documentId || !formData.documentId.trim()) {
+      alert(t.forms.documentId ? `${t.forms.documentId} es requerido` : 'Documento de Identidad es requerido');
+      return;
+    }
+    
     const trimmedFirstName = (formData.firstName || '').trim();
     const trimmedLastName = (formData.lastName || '').trim();
     
@@ -1500,6 +2279,19 @@ function CandidateEditModal({ candidate, onClose, onSave, t, statusOptions = STA
                       value={formData.lastName || ''}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                       className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:border-olive-400 focus:ring-2 focus:ring-olive-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t.forms.documentId || 'Documento de Identidad'} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.documentId || ''}
+                      onChange={(e) => setFormData({ ...formData, documentId: e.target.value })}
+                      className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:border-olive-400 focus:ring-2 focus:ring-olive-100"
+                      placeholder={t.forms.documentIdPlaceholder || 'Número de documento'}
+                      required
                     />
                   </div>
                 </div>
@@ -1885,6 +2677,7 @@ function CandidateAddModal({ onClose, onSave, t, statusOptions = STATUS_OPTIONS,
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
+    documentId: '',
     gender: '',
     birthDate: '',
     level: 'Jardín',
@@ -1987,6 +2780,13 @@ function CandidateAddModal({ onClose, onSave, t, statusOptions = STATUS_OPTIONS,
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!formData.documentId || !formData.documentId.trim()) {
+      alert(t.forms.documentId ? `${t.forms.documentId} es requerido` : 'Documento de Identidad es requerido');
+      return;
+    }
+    
     const trimmedFirstName = (formData.firstName || '').trim();
     const trimmedLastName = (formData.lastName || '').trim();
     const fullName = `${trimmedFirstName} ${trimmedLastName}`.replace(/\s+/g, ' ').trim();
@@ -2089,6 +2889,16 @@ function CandidateAddModal({ onClose, onSave, t, statusOptions = STATUS_OPTIONS,
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                       className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:border-olive-400 focus:ring-2 focus:ring-olive-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">{t.forms.documentId || 'Documento de Identidad'}</label>
+                    <input
+                      type="text"
+                      value={formData.documentId || ''}
+                      onChange={(e) => setFormData({ ...formData, documentId: e.target.value })}
+                      className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:border-olive-400 focus:ring-2 focus:ring-olive-100"
+                      placeholder={t.forms.documentIdPlaceholder || 'Número de documento'}
                     />
                   </div>
                 </div>
