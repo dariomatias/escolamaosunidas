@@ -1310,6 +1310,8 @@ export const ADMIN_TRANSLATIONS = {
         previous: 'Anterior',
         next: 'Próximo',
         page: 'Página',
+        recordsPerPage: 'Registros por página',
+        all: 'TODOS',
       },
       modals: {
         addTitle: 'Adicionar Patrocinador',
@@ -1752,6 +1754,8 @@ export const ADMIN_TRANSLATIONS = {
         previous: 'Previous',
         next: 'Next',
         page: 'Page',
+        recordsPerPage: 'Records per page',
+        all: 'ALL',
       },
       modals: {
         addTitle: 'Add Sponsor',
