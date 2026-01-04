@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, query, orderBy, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage, auth } from '../config/firebase';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import JSZip from 'jszip';
 import { searchSponsors, createSponsor, getSponsorById } from '../services/sponsors-api';
-import { createOrUpdateStudentFromCandidate, updateStudentStatusByCandidateId } from '../services/students-api';
+import { createOrUpdateStudentFromCandidate, updateStudentStatusByCandidateId, createStudentFromCandidateData } from '../services/students-api';
 import AdminNavbar from './AdminNavbar';
 import {
   ADMIN_TRANSLATIONS,
@@ -290,7 +291,8 @@ export default function CandidatesCRUD() {
         
         // Update associated student status to inactive
         try {
-          await updateStudentStatusByCandidateId(id, 'inactive');
+          const studentId = currentCandidate?.studentId || null;
+          await updateStudentStatusByCandidateId(id, 'inactive', studentId);
         } catch (studentError) {
           console.error('Error updating student status to inactive:', studentError);
           // Don't block the candidate update if student update fails
@@ -417,7 +419,8 @@ export default function CandidatesCRUD() {
     }
   };
 
-  const handleExportPDF = async (candidate) => {
+  // Generate PDF for a candidate and return as array buffer (for ZIP export)
+  const generateCandidatePDF = async (candidate, returnAsBuffer = false) => {
     try {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
@@ -443,14 +446,16 @@ export default function CandidatesCRUD() {
       doc.setFont('helvetica', 'normal');
       doc.text('Ficha del Candidato', pageWidth / 2, 30, { align: 'center' });
 
-      // Foto del candidato en el margen superior derecho
-      const photoSize = 35;
-      const photoX = pageWidth - marginRight - photoSize;
-      const photoY = marginTop;
+      // Foto del candidato en el margen superior izquierdo (estilo CV)
+      const photoSize = 45;
+      const photoX = marginLeft;
+      const photoY = marginTop; // marginTop = 50, después del header verde (40px)
       
+      // Cargar foto del candidato si existe
+      let imgData = null;
       if (candidate.photoURL) {
         try {
-          let imgData = null;
+          console.log('📸 Intentando cargar foto del candidato:', candidate.photoURL);
           
           // Método 1: Buscar si la imagen ya está cargada en el DOM
           const existingImg = document.querySelector(`img[src="${candidate.photoURL}"]`);
@@ -462,7 +467,7 @@ export default function CandidatesCRUD() {
               const ctx = canvas.getContext('2d');
               ctx.drawImage(existingImg, 0, 0);
               imgData = canvas.toDataURL('image/jpeg', 0.9);
-              console.log('Usando imagen del DOM');
+              console.log('✅ Usando imagen del DOM');
             } catch (error) {
               console.log('Error al usar imagen del DOM, intentando otros métodos');
             }
@@ -508,7 +513,7 @@ export default function CandidatesCRUD() {
                 };
                 img.src = newUrl;
               });
-              console.log('Usando nueva URL de Firebase Storage');
+              console.log('✅ Usando nueva URL de Firebase Storage');
             } catch (error) {
               console.log('No se pudo obtener nueva URL de Storage');
             }
@@ -550,20 +555,46 @@ export default function CandidatesCRUD() {
               };
               img.src = candidate.photoURL;
             });
-            console.log('Usando URL directa');
+            console.log('✅ Usando URL directa');
           }
           
-          // Agregar imagen al PDF si la tenemos
-          if (imgData) {
-            doc.addImage(imgData, 'JPEG', photoX, photoY, photoSize, photoSize);
-            console.log('✅ Foto agregada al PDF exitosamente');
-          } else {
-            console.log('⚠️ No se pudo cargar la foto para el PDF');
-          }
         } catch (error) {
-          console.error('Error al cargar foto para PDF:', error);
+          console.error('❌ Error al cargar foto para PDF:', error);
           // Continuar sin foto - el PDF se generará igual
         }
+      } else {
+        console.log('⚠️ El candidato no tiene photoURL');
+      }
+      
+      // Agregar la imagen al PDF después de intentar cargarla (fuera del bloque if)
+      if (imgData) {
+        try {
+          console.log('🖼️ Agregando imagen al PDF. Tipo:', typeof imgData, 'Es dataURL:', imgData?.startsWith('data:'));
+          
+          // jsPDF puede tener problemas con dataURL completo, usar solo la parte base64
+          let imageToAdd = imgData;
+          if (typeof imgData === 'string' && imgData.includes(',')) {
+            // Extraer solo la parte base64 después de la coma
+            imageToAdd = imgData.split(',')[1];
+            console.log('📝 Usando solo la parte base64 del dataURL');
+          }
+          
+          // Agregar imagen al PDF
+          doc.addImage(imageToAdd, 'JPEG', photoX, photoY, photoSize, photoSize);
+          console.log('✅ Foto agregada al PDF exitosamente en posición:', photoX, photoY, 'tamaño:', photoSize);
+        } catch (imgError) {
+          console.error('❌ Error al agregar imagen al PDF:', imgError);
+          console.error('Detalles del error:', imgError.message);
+          // Intentar método alternativo: agregar imagen completa con dataURL
+          try {
+            doc.addImage(imgData, 'JPEG', photoX, photoY, photoSize, photoSize, undefined, 'FAST');
+            console.log('✅ Foto agregada usando método alternativo');
+          } catch (altError) {
+            console.error('❌ Error también con método alternativo:', altError);
+          }
+        }
+      } else {
+        console.log('⚠️ No se pudo cargar la foto - imgData es null o undefined');
       }
 
       // Función helper para agregar un campo de formulario
@@ -591,14 +622,17 @@ export default function CandidatesCRUD() {
         
         return startY + Math.max(lineHeight, valueLines.length * lineHeight) + 2;
       };
-
-      // Título principal
+      
+      // Título principal (ajustado para dejar espacio a la foto a la izquierda)
       doc.setTextColor(...textColor);
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       const fullName = getCandidateDisplayName(candidate);
-      doc.text(fullName, marginLeft, yPosition);
-      yPosition += 12;
+      const textStartX = marginLeft + photoSize + 10; // Espacio después de la foto
+      // Ajustar yPosition para alinear el nombre con la parte superior de la foto
+      const nameYPosition = marginTop + (photoSize > 0 ? 10 : 0); // Alineado con la parte superior de la foto
+      doc.text(fullName, textStartX, nameYPosition);
+      yPosition = marginTop + photoSize + 5; // Continuar después de la foto
 
       // Línea separadora
       doc.setDrawColor(...primaryColor);
@@ -778,12 +812,96 @@ export default function CandidatesCRUD() {
         );
       }
 
-      // Guardar PDF
+      // Return PDF as array buffer if requested, otherwise save it
       const fileName = `${fullName.replace(/[^a-z0-9]/gi, '_')}_${candidate.period || 'candidato'}.pdf`;
-      doc.save(fileName);
+      if (returnAsBuffer) {
+        return { buffer: doc.output('arraybuffer'), fileName };
+      } else {
+        doc.save(fileName);
+        return null;
+      }
     } catch (error) {
       console.error('Error generating PDF:', error);
+      if (!returnAsBuffer) {
+        alert('Error al generar el PDF. Por favor, intenta nuevamente.');
+      }
+      throw error;
+    }
+  };
+
+  // Export single PDF (maintains original behavior)
+  const handleExportPDF = async (candidate) => {
+    try {
+      await generateCandidatePDF(candidate, false);
+    } catch (error) {
       alert('Error al generar el PDF. Por favor, intenta nuevamente.');
+    }
+  };
+
+  // Export all PDFs for filtered candidates as ZIP
+  const handleExportAllPDFs = async () => {
+    if (sortedCandidates.length === 0) {
+      alert(t.exportAll?.noCandidates || 'No hay candidatos para exportar.');
+      return;
+    }
+
+    if (!confirm(
+      t.exportAll?.confirm || 
+      `¿Exportar ${sortedCandidates.length} PDF${sortedCandidates.length > 1 ? 's' : ''}? Esta operación puede tardar unos minutos.`
+    )) {
+      return;
+    }
+
+    setIsLoading(true);
+    const zip = new JSZip();
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      // Show progress (simple approach - could be enhanced with progress bar)
+      for (let i = 0; i < sortedCandidates.length; i++) {
+        const candidate = sortedCandidates[i];
+        try {
+          const result = await generateCandidatePDF(candidate, true);
+          if (result && result.buffer) {
+            zip.file(result.fileName, result.buffer);
+            successCount++;
+          }
+        } catch (error) {
+          console.error(`Error generating PDF for ${getCandidateDisplayName(candidate)}:`, error);
+          errorCount++;
+        }
+      }
+
+      // Generate ZIP file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Download ZIP
+      const zipFileName = `candidatos_${new Date().toISOString().split('T')[0]}.zip`;
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = zipFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      // Show summary
+      if (errorCount > 0) {
+        alert(
+          `${t.exportAll?.success || 'Exportación completada'} (${successCount} exitoso${successCount !== 1 ? 's' : ''}, ${errorCount} error${errorCount !== 1 ? 'es' : ''}).`
+        );
+      } else {
+        alert(
+          `${t.exportAll?.success || 'Exportación completada'}: ${successCount} PDF${successCount !== 1 ? 's' : ''} exportado${successCount !== 1 ? 's' : ''} exitosamente.`
+        );
+      }
+    } catch (error) {
+      console.error('Error exporting PDFs:', error);
+      alert(t.exportAll?.error || 'Error al exportar los PDFs. Por favor, intenta nuevamente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -946,21 +1064,36 @@ export default function CandidatesCRUD() {
               </div>
             </div>
 
-            {/* Clear Filters Button */}
-            {(searchText || filterLevel || filterPeriod || filterStatus) && (
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={handleClearFilters}
-                  className="px-4 py-2 text-sm font-medium text-olive-700 hover:text-olive-800 hover:bg-olive-50 rounded-lg border border-olive-200 transition-colors"
-                >
-                  {t.filters?.clearFilters || 'Limpiar filtros'}
-                </button>
+            {/* Actions Row: Results Count, Export All PDFs, and Clear Filters */}
+            <div className="mt-4 flex justify-between items-center">
+              {/* Results Count */}
+              <div className="text-sm text-neutral-600">
+                {sortedCandidates.length} {sortedCandidates.length === 1 ? (t.filters?.result || 'resultado') : (t.filters?.results || 'resultados')}
               </div>
-            )}
-
-            {/* Results Count */}
-            <div className="mt-4 text-sm text-neutral-600">
-              {sortedCandidates.length} {sortedCandidates.length === 1 ? (t.filters?.result || 'resultado') : (t.filters?.results || 'resultados')}
+              
+              {/* Actions */}
+              <div className="flex gap-3">
+                {sortedCandidates.length > 0 && (
+                  <button
+                    onClick={handleExportAllPDFs}
+                    disabled={isLoading}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {t.exportAll?.button || 'Exportar Todos los PDFs'}
+                  </button>
+                )}
+                {(searchText || filterLevel || filterPeriod || filterStatus) && (
+                  <button
+                    onClick={handleClearFilters}
+                    className="px-4 py-2 text-sm font-medium text-olive-700 hover:text-olive-800 hover:bg-olive-50 rounded-lg border border-olive-200 transition-colors"
+                  >
+                    {t.filters?.clearFilters || 'Limpiar filtros'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1293,11 +1426,18 @@ export default function CandidatesCRUD() {
           onSave={async (newCandidate) => {
             try {
               setIsLoading(true);
+              
+              // First, create a student in inactive status
+              const studentId = await createStudentFromCandidateData(newCandidate);
+              
+              // Then, create the candidate with reference to the student
               await addDoc(collection(db, 'candidates'), {
                 ...newCandidate,
+                studentId: studentId, // Reference to the student
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
               });
+              
               setShowAddModal(false);
               await fetchCandidates();
             } catch (error) {

@@ -9,7 +9,8 @@ const COPY = {
       education: "Sistema Educativo", 
       students: "Los Estudiantes", 
       socialAssistance: "Asistencia Social",
-      scholarships: "Becas", 
+      scholarships: "Becas",
+      admissions: "Admisiones",
       contact: "Contacto" 
     },
     hero: {
@@ -207,6 +208,27 @@ const COPY = {
       },
       cta: "Apadrinar ahora",
     },
+    admissions: {
+      heading: "Admisiones 2026",
+      subtitle: "Inscripciones abiertas para el ciclo lectivo 2026",
+      description: "Estamos aceptando nuevas inscripciones para el ciclo lectivo 2026. Si estás interesado en que tu hijo o hija forme parte de nuestra comunidad educativa, completa el formulario a continuación y nos pondremos en contacto contigo.",
+      scholarshipsLink: "¿Necesitas ayuda económica? Consulta nuestro",
+      scholarshipsLinkText: "Programa de Becas",
+      formTitle: "Formulario de Inscripción",
+      studentFirstName: "Nombre del Estudiante",
+      studentLastName: "Apellido del Estudiante",
+      birthDate: "Fecha de Nacimiento",
+      grade: "Grado/Nivel de Interés",
+      parentName: "Nombre del Tutor/Responsable",
+      parentEmail: "Email del Tutor/Responsable",
+      parentPhone: "Teléfono del Tutor/Responsable",
+      address: "Dirección (opcional)",
+      notes: "Notas Adicionales (opcional)",
+      submit: "Enviar Solicitud",
+      disclaimer: "Al enviar este formulario, nos pondremos en contacto contigo a la brevedad posible.",
+      success: "¡Solicitud enviada exitosamente! Te contactaremos pronto.",
+      error: "Error al enviar la solicitud. Por favor, intenta nuevamente.",
+    },
     contact: {
       heading: "Contacto",
       church: "Iglesia Corazón de Fuego",
@@ -233,7 +255,8 @@ const COPY = {
       education: "Sistema Educacional", 
       students: "Os Estudantes", 
       socialAssistance: "Assistência Social",
-      scholarships: "Bolsas", 
+      scholarships: "Bolsas",
+      admissions: "Admissões",
       contact: "Contato" 
     },
     hero: {
@@ -431,6 +454,27 @@ const COPY = {
       },
       cta: "Apadrinhar agora",
     },
+    admissions: {
+      heading: "Admissões 2026",
+      subtitle: "Inscrições abertas para o ano letivo 2026",
+      description: "Estamos aceitando novas inscrições para o ano letivo 2026. Se você está interessado em que seu filho ou filha faça parte da nossa comunidade educacional, preencha o formulário abaixo e entraremos em contato.",
+      scholarshipsLink: "Precisa de ajuda financeira? Consulte nosso",
+      scholarshipsLinkText: "Programa de Bolsas",
+      formTitle: "Formulário de Inscrição",
+      studentFirstName: "Nome do Estudante",
+      studentLastName: "Sobrenome do Estudante",
+      birthDate: "Data de Nascimento",
+      grade: "Série/Nível de Interesse",
+      parentName: "Nome do Tutor/Responsável",
+      parentEmail: "Email do Tutor/Responsável",
+      parentPhone: "Telefone do Tutor/Responsável",
+      address: "Endereço (opcional)",
+      notes: "Observações Adicionais (opcional)",
+      submit: "Enviar Solicitação",
+      disclaimer: "Ao enviar este formulário, entraremos em contato o mais breve possível.",
+      success: "Solicitação enviada com sucesso! Entraremos em contato em breve.",
+      error: "Erro ao enviar a solicitação. Por favor, tente novamente.",
+    },
     contact: {
       heading: "Contato",
       church: "Igreja Corazón de Fuego",
@@ -457,7 +501,8 @@ const COPY = {
       education: "Educational System", 
       students: "The Students", 
       socialAssistance: "Social Assistance",
-      scholarships: "Scholarships", 
+      scholarships: "Scholarships",
+      admissions: "Admissions",
       contact: "Contact" 
     },
     hero: {
@@ -655,6 +700,27 @@ const COPY = {
       },
       cta: "Sponsor now",
     },
+    admissions: {
+      heading: "Admissions 2026",
+      subtitle: "Open enrollment for the 2026 academic year",
+      description: "We are accepting new applications for the 2026 academic year. If you are interested in having your child become part of our educational community, please fill out the form below and we will contact you.",
+      scholarshipsLink: "Need financial assistance? Check out our",
+      scholarshipsLinkText: "Scholarship Program",
+      formTitle: "Application Form",
+      studentFirstName: "Student First Name",
+      studentLastName: "Student Last Name",
+      birthDate: "Date of Birth",
+      grade: "Grade/Level of Interest",
+      parentName: "Parent/Guardian Name",
+      parentEmail: "Parent/Guardian Email",
+      parentPhone: "Parent/Guardian Phone",
+      address: "Address (optional)",
+      notes: "Additional Notes (optional)",
+      submit: "Submit Application",
+      disclaimer: "By submitting this form, we will contact you as soon as possible.",
+      success: "Application sent successfully! We will contact you soon.",
+      error: "Error sending application. Please try again.",
+    },
     contact: {
       heading: "Contact",
       church: "Corazón de Fuego Church",
@@ -686,6 +752,18 @@ export default function EscolaMaosUnidasSite() {
   const [showSponsorshipModal, setShowSponsorshipModal] = useState(false);
   const [sponsorshipData, setSponsorshipData] = useState({ firstName: '', lastName: '', email: '' });
   const [sponsorshipStatus, setSponsorshipStatus] = useState({ loading: false, success: false, error: '' });
+  const [admissionsData, setAdmissionsData] = useState({ 
+    studentName: '', 
+    studentLastName: '', 
+    birthDate: '', 
+    grade: '', 
+    parentName: '', 
+    parentEmail: '', 
+    parentPhone: '', 
+    address: '', 
+    notes: '' 
+  });
+  const [admissionsStatus, setAdmissionsStatus] = useState({ loading: false, success: false, error: '' });
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [showEscolaDropdown, setShowEscolaDropdown] = useState(false);
   const [escolaDropdownTimeout, setEscolaDropdownTimeout] = useState(null);
@@ -814,6 +892,56 @@ export default function EscolaMaosUnidasSite() {
     }
   };
 
+  const handleAdmissionsSubmit = async (e) => {
+    e.preventDefault();
+    setAdmissionsStatus({ loading: true, success: false, error: '' });
+
+    try {
+      // Obtener la URL de la función
+      const functionUrl = 'https://us-central1-escola-maos-unidas.cloudfunctions.net/sendAdmissionsEmail';
+      
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(admissionsData),
+      });
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error('Error parsing response:', jsonError);
+        throw new Error('Invalid response from server');
+      }
+
+      if (response.ok && data.success) {
+        setAdmissionsStatus({ loading: false, success: true, error: '' });
+        setAdmissionsData({ 
+          studentName: '', 
+          studentLastName: '', 
+          birthDate: '', 
+          grade: '', 
+          parentName: '', 
+          parentEmail: '', 
+          parentPhone: '', 
+          address: '', 
+          notes: '' 
+        });
+        // Resetear el mensaje de éxito después de 5 segundos
+        setTimeout(() => {
+          setAdmissionsStatus({ loading: false, success: false, error: '' });
+        }, 5000);
+      } else {
+        setAdmissionsStatus({ loading: false, success: false, error: data.message || data.error || t.admissions?.error || 'Error al enviar la solicitud' });
+      }
+    } catch (error) {
+      console.error('Error sending admissions form:', error);
+      setAdmissionsStatus({ loading: false, success: false, error: t.admissions?.error || (lang === 'es' ? 'Error de conexión. Por favor intenta nuevamente.' : lang === 'pt' ? 'Erro de conexão. Por favor tente novamente.' : 'Connection error. Please try again.') });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-stone-50 text-neutral-900">
       {/* NAVBAR */}
@@ -872,6 +1000,7 @@ export default function EscolaMaosUnidasSite() {
               )}
             </div>
             <a href="#scholarships" className="hover:text-olive-600 transition-colors">{t.nav.scholarships}</a>
+            <a href="#admissions" className="hover:text-olive-600 transition-colors">{t.nav.admissions}</a>
             <a href="#contact" className="hover:text-olive-600 transition-colors">{t.nav.contact}</a>
           </nav>
           <div className="flex items-center gap-3">
@@ -1275,6 +1404,196 @@ export default function EscolaMaosUnidasSite() {
             >
               🤝 {t.scholarships.cta}
             </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ADMISSIONS 2026 */}
+      <section id="admissions" className="py-20 bg-white relative">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-olive-200 via-olive-300/50 to-olive-200"></div>
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="mb-12 text-center">
+            <h2 className="text-4xl font-bold mb-4 text-olive-800">{t.admissions.heading}</h2>
+            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">{t.admissions.subtitle}</p>
+          </div>
+
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-gradient-to-br from-olive-50/50 to-stone-50/50 rounded-2xl border border-olive-100 shadow-sm mb-8">
+              <div className="p-8">
+                <p className="text-neutral-700 leading-relaxed mb-4">{t.admissions.description}</p>
+                <p className="text-neutral-700 leading-relaxed">
+                  {t.admissions.scholarshipsLink}{' '}
+                  <a 
+                    href="#scholarships" 
+                    className="text-olive-600 hover:text-olive-700 font-semibold underline transition-colors"
+                  >
+                    {t.admissions.scholarshipsLinkText}
+                  </a>
+                  .
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-olive-50/50 to-stone-50/50 rounded-2xl border border-olive-100 shadow-sm">
+              <div className="px-8 py-6 border-b border-olive-100">
+                <h3 className="font-bold text-xl text-olive-800">{t.admissions.formTitle}</h3>
+              </div>
+              <div className="p-8">
+                <form onSubmit={handleAdmissionsSubmit} className="space-y-4">
+                  {admissionsStatus.success && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+                      ✓ {t.admissions.success}
+                    </div>
+                  )}
+                  {admissionsStatus.error && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+                      ✗ {admissionsStatus.error}
+                    </div>
+                  )}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-neutral-700" htmlFor="studentName">
+                        {t.admissions.studentFirstName} <span className="text-red-500">*</span>
+                      </label>
+                      <input 
+                        id="studentName" 
+                        name="studentName" 
+                        value={admissionsData.studentName}
+                        onChange={(e) => setAdmissionsData({ ...admissionsData, studentName: e.target.value })}
+                        required 
+                        disabled={admissionsStatus.loading}
+                        className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-neutral-700" htmlFor="studentLastName">
+                        {t.admissions.studentLastName} <span className="text-red-500">*</span>
+                      </label>
+                      <input 
+                        id="studentLastName" 
+                        name="studentLastName" 
+                        value={admissionsData.studentLastName}
+                        onChange={(e) => setAdmissionsData({ ...admissionsData, studentLastName: e.target.value })}
+                        required 
+                        disabled={admissionsStatus.loading}
+                        className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                      />
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-neutral-700" htmlFor="birthDate">
+                        {t.admissions.birthDate}
+                      </label>
+                      <input 
+                        id="birthDate" 
+                        name="birthDate" 
+                        type="date"
+                        value={admissionsData.birthDate}
+                        onChange={(e) => setAdmissionsData({ ...admissionsData, birthDate: e.target.value })}
+                        disabled={admissionsStatus.loading}
+                        className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-neutral-700" htmlFor="grade">
+                        {t.admissions.grade}
+                      </label>
+                      <input 
+                        id="grade" 
+                        name="grade" 
+                        value={admissionsData.grade}
+                        onChange={(e) => setAdmissionsData({ ...admissionsData, grade: e.target.value })}
+                        disabled={admissionsStatus.loading}
+                        placeholder={lang === 'es' ? 'Ej: Jardín, 1° grado, etc.' : lang === 'pt' ? 'Ex: Pré-primária, 1ª classe, etc.' : 'Ex: Kindergarten, 1st grade, etc.'}
+                        className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-neutral-700" htmlFor="parentName">
+                      {t.admissions.parentName} <span className="text-red-500">*</span>
+                    </label>
+                    <input 
+                      id="parentName" 
+                      name="parentName" 
+                      value={admissionsData.parentName}
+                      onChange={(e) => setAdmissionsData({ ...admissionsData, parentName: e.target.value })}
+                      required 
+                      disabled={admissionsStatus.loading}
+                      className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                    />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-neutral-700" htmlFor="parentEmail">
+                        {t.admissions.parentEmail} <span className="text-red-500">*</span>
+                      </label>
+                      <input 
+                        id="parentEmail" 
+                        name="parentEmail" 
+                        type="email"
+                        value={admissionsData.parentEmail}
+                        onChange={(e) => setAdmissionsData({ ...admissionsData, parentEmail: e.target.value })}
+                        required 
+                        disabled={admissionsStatus.loading}
+                        className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-neutral-700" htmlFor="parentPhone">
+                        {t.admissions.parentPhone} <span className="text-red-500">*</span>
+                      </label>
+                      <input 
+                        id="parentPhone" 
+                        name="parentPhone" 
+                        type="tel"
+                        value={admissionsData.parentPhone}
+                        onChange={(e) => setAdmissionsData({ ...admissionsData, parentPhone: e.target.value })}
+                        required 
+                        disabled={admissionsStatus.loading}
+                        className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-neutral-700" htmlFor="address">
+                      {t.admissions.address}
+                    </label>
+                    <input 
+                      id="address" 
+                      name="address" 
+                      value={admissionsData.address}
+                      onChange={(e) => setAdmissionsData({ ...admissionsData, address: e.target.value })}
+                      disabled={admissionsStatus.loading}
+                      className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-neutral-700" htmlFor="notes">
+                      {t.admissions.notes}
+                    </label>
+                    <textarea 
+                      id="notes" 
+                      name="notes" 
+                      rows={4} 
+                      value={admissionsData.notes}
+                      onChange={(e) => setAdmissionsData({ ...admissionsData, notes: e.target.value })}
+                      disabled={admissionsStatus.loading}
+                      className="mt-1 w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                    />
+                  </div>
+                  <button 
+                    type="submit" 
+                    disabled={admissionsStatus.loading}
+                    className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-olive-600 to-olive-700 text-white font-semibold hover:from-olive-700 hover:to-olive-800 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {admissionsStatus.loading ? '⏳ ' : '📝 '}{admissionsStatus.loading ? (lang === 'es' ? 'Enviando...' : lang === 'pt' ? 'Enviando...' : 'Sending...') : t.admissions.submit}
+                  </button>
+                  <p className="text-xs text-neutral-500 mt-2">{t.admissions.disclaimer}</p>
+                </form>
+              </div>
+            </div>
           </div>
         </div>
       </section>

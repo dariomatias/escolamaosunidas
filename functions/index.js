@@ -377,3 +377,144 @@ Equipo Escola Mãos Unidas
     }
   }
 );
+
+exports.sendAdmissionsEmail = onRequest(
+  {
+    secrets: [sendgridApiKey],
+    cors: true,
+  },
+  async (req, res) => {
+    // Configurar SendGrid con el secret
+    sgMail.setApiKey(sendgridApiKey.value());
+
+    // Manejar preflight con headers CORS explícitos
+    if (req.method === 'OPTIONS') {
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.set('Access-Control-Allow-Headers', 'Content-Type');
+      res.set('Access-Control-Max-Age', '3600');
+      res.status(204).send('');
+      return;
+    }
+
+    // Establecer headers CORS para todas las respuestas
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+    // Solo permitir POST
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    try {
+      const { 
+        studentName, 
+        studentLastName, 
+        birthDate, 
+        grade, 
+        parentName, 
+        parentEmail, 
+        parentPhone, 
+        address,
+        notes 
+      } = req.body;
+
+      // Validar campos requeridos
+      if (!studentName || !studentLastName || !parentName || !parentEmail || !parentPhone) {
+        res.status(400).json({ error: 'Missing required fields' });
+        return;
+      }
+
+      // Validar formato de email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(parentEmail)) {
+        res.status(400).json({ error: 'Invalid email format' });
+        return;
+      }
+
+      const fullStudentName = `${studentName} ${studentLastName}`;
+
+      // Configurar el email
+      const msg = {
+        to: 'administracion@escolamaosunidas.com',
+        from: 'noreply@escolamaosunidas.com',
+        subject: `Nueva solicitud de inscripción 2026 - ${fullStudentName}`,
+        text: `
+Nueva solicitud de inscripción para el ciclo lectivo 2026:
+
+INFORMACIÓN DEL ESTUDIANTE:
+Nombre: ${studentName}
+Apellido: ${studentLastName}
+${birthDate ? `Fecha de Nacimiento: ${birthDate}` : ''}
+${grade ? `Grado/Nivel: ${grade}` : ''}
+
+INFORMACIÓN DEL TUTOR/RESPONSABLE:
+Nombre: ${parentName}
+Email: ${parentEmail}
+Teléfono: ${parentPhone}
+${address ? `Dirección: ${address}` : ''}
+
+${notes ? `NOTAS ADICIONALES:\n${notes}` : ''}
+
+---
+Este mensaje fue enviado desde el formulario de admisiones 2026 de escolamaosunidas.com
+        `,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #4a5568; border-bottom: 2px solid #68d391; padding-bottom: 10px;">
+              Nueva Solicitud de Inscripción 2026
+            </h2>
+            
+            <div style="background-color: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #68d391;">
+              <h3 style="color: #2d3748; margin-top: 0;">Información del Estudiante</h3>
+              <p style="margin: 8px 0;"><strong>Nombre:</strong> ${studentName}</p>
+              <p style="margin: 8px 0;"><strong>Apellido:</strong> ${studentLastName}</p>
+              ${birthDate ? `<p style="margin: 8px 0;"><strong>Fecha de Nacimiento:</strong> ${birthDate}</p>` : ''}
+              ${grade ? `<p style="margin: 8px 0;"><strong>Grado/Nivel:</strong> ${grade}</p>` : ''}
+            </div>
+            
+            <div style="background-color: #ffffff; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #2d3748; margin-top: 0;">Información del Tutor/Responsable</h3>
+              <p style="margin: 8px 0;"><strong>Nombre:</strong> ${parentName}</p>
+              <p style="margin: 8px 0;"><strong>Email:</strong> <a href="mailto:${parentEmail}">${parentEmail}</a></p>
+              <p style="margin: 8px 0;"><strong>Teléfono:</strong> ${parentPhone}</p>
+              ${address ? `<p style="margin: 8px 0;"><strong>Dirección:</strong> ${address}</p>` : ''}
+            </div>
+            
+            ${notes ? `
+            <div style="background-color: #fef5e7; padding: 20px; border: 1px solid #f6ad55; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #2d3748; margin-top: 0;">Notas Adicionales</h3>
+              <p style="color: #4a5568; white-space: pre-wrap; margin: 0;">${notes}</p>
+            </div>
+            ` : ''}
+            
+            <p style="color: #718096; font-size: 12px; margin-top: 20px;">
+              Este mensaje fue enviado desde el formulario de admisiones 2026 de escolamaosunidas.com
+            </p>
+          </div>
+        `,
+        replyTo: parentEmail,
+      };
+
+      // Enviar el email
+      await sgMail.send(msg);
+
+      // Responder con éxito
+      res.status(200).json({ 
+        success: true, 
+        message: 'Admissions email sent successfully' 
+      });
+
+    } catch (error) {
+      console.error('Error sending admissions email:', error);
+      
+      // Responder con error
+      res.status(500).json({ 
+        error: 'Failed to send email',
+        message: error.message 
+      });
+    }
+  }
+);

@@ -48,8 +48,10 @@ export default function StudentsCRUD() {
   const [filterAcademicYear, setFilterAcademicYear] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPaymentStatus, setFilterPaymentStatus] = useState('');
+  const [filterSponsor, setFilterSponsor] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(25);
+  const [showSponsorColumn, setShowSponsorColumn] = useState(false);
 
   const t = ADMIN_TRANSLATIONS[locale] || ADMIN_TRANSLATIONS[ADMIN_DEFAULT_LOCALE];
   const statusLabels = t.students?.statuses || {};
@@ -177,13 +179,34 @@ export default function StudentsCRUD() {
     try {
       setIsLoading(true);
       const { id, firstName, lastName, ...rest } = updatedData;
+      
+      // Get current student state to check if status is changing
+      const currentStudent = students.find(s => s.id === id);
+      const isStatusChangingToInactive = currentStudent?.status !== 'inactive' && rest.status === 'inactive';
+      const hasSponsorId = currentStudent?.sponsorId || currentStudent?.sponsor;
+      
+      // Prepare update data
+      const updateData = { ...rest };
+      
+      // If changing status to inactive, clear sponsor information
+      if (isStatusChangingToInactive && hasSponsorId) {
+        if (!confirm(t.students?.confirm?.clearSponsor || 'El estudiante será marcado como inactivo. ¿Deseas eliminar la información del patrocinador?')) {
+          setIsLoading(false);
+          return; // User cancelled
+        }
+        
+        updateData.sponsorId = deleteField();
+        updateData.sponsor = deleteField();
+        updateData.sponsorAssignedDate = deleteField();
+      }
+      
       const studentRef = doc(db, 'students', id);
       const computedFullName = `${(firstName || '').trim()} ${(lastName || '').trim()}`
         .replace(/\s+/g, ' ')
         .trim() || '';
       
       await updateDoc(studentRef, {
-        ...rest,
+        ...updateData,
         firstName: firstName || '',
         lastName: lastName || '',
         fullName: computedFullName,
@@ -220,12 +243,36 @@ export default function StudentsCRUD() {
     return [...new Set(years)].sort().reverse();
   }, [students]);
 
+  // Get unique sponsors for filter dropdown
+  const uniqueSponsors = useMemo(() => {
+    const sponsors = students
+      .filter(s => s.sponsor && (s.sponsor.firstName || s.sponsor.lastName))
+      .map(s => {
+        const fullName = `${s.sponsor.firstName || ''} ${s.sponsor.lastName || ''}`.trim();
+        return { id: s.sponsorId || fullName, name: fullName };
+      })
+      .filter(sponsor => sponsor.name);
+    
+    // Remove duplicates by name
+    const unique = [];
+    const seen = new Set();
+    sponsors.forEach(sponsor => {
+      if (!seen.has(sponsor.name)) {
+        seen.add(sponsor.name);
+        unique.push(sponsor);
+      }
+    });
+    
+    return unique.sort((a, b) => a.name.localeCompare(b.name));
+  }, [students]);
+
   const handleClearFilters = () => {
     setSearchText('');
     setFilterGrade('');
     setFilterAcademicYear('');
     setFilterStatus('');
     setFilterPaymentStatus('');
+    setFilterSponsor('');
   };
 
   const sortedStudents = useMemo(() => {
@@ -266,6 +313,15 @@ export default function StudentsCRUD() {
         return false;
       }
 
+      // Sponsor filter
+      if (filterSponsor) {
+        if (!student.sponsor) return false;
+        const sponsorFullName = `${student.sponsor.firstName || ''} ${student.sponsor.lastName || ''}`.trim();
+        if (sponsorFullName !== filterSponsor) {
+          return false;
+        }
+      }
+
       return true;
     });
 
@@ -299,6 +355,12 @@ export default function StudentsCRUD() {
           aValue = (paymentStatusLabels[a.paymentStatus] || a.paymentStatus || '').toLowerCase();
           bValue = (paymentStatusLabels[b.paymentStatus] || b.paymentStatus || '').toLowerCase();
           break;
+        case 'sponsor':
+          const aSponsorName = a.sponsor ? `${a.sponsor.firstName || ''} ${a.sponsor.lastName || ''}`.trim() : '';
+          const bSponsorName = b.sponsor ? `${b.sponsor.firstName || ''} ${b.sponsor.lastName || ''}`.trim() : '';
+          aValue = aSponsorName.toLowerCase();
+          bValue = bSponsorName.toLowerCase();
+          break;
         default:
           return 0;
       }
@@ -308,7 +370,7 @@ export default function StudentsCRUD() {
       return 0;
     });
     return sorted;
-  }, [students, sortField, sortDirection, statusLabels, paymentStatusLabels, searchText, filterGrade, filterAcademicYear, filterStatus, filterPaymentStatus]);
+  }, [students, sortField, sortDirection, statusLabels, paymentStatusLabels, searchText, filterGrade, filterAcademicYear, filterStatus, filterPaymentStatus, filterSponsor]);
 
   // Pagination logic
   const paginatedStudents = useMemo(() => {
@@ -326,7 +388,7 @@ export default function StudentsCRUD() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchText, filterGrade, filterAcademicYear, filterStatus, filterPaymentStatus, recordsPerPage]);
+  }, [searchText, filterGrade, filterAcademicYear, filterStatus, filterPaymentStatus, filterSponsor, recordsPerPage]);
 
   if (loading) {
     return (
@@ -478,10 +540,29 @@ export default function StudentsCRUD() {
                     ))}
                   </select>
                 </div>
+
+                {/* Sponsor Filter - Only show when column is visible */}
+                {showSponsorColumn && (
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t.students?.filters?.sponsor || 'Padrino'}
+                    </label>
+                    <select
+                      value={filterSponsor}
+                      onChange={(e) => setFilterSponsor(e.target.value)}
+                      className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white"
+                    >
+                      <option value="">{t.students?.filters?.allSponsors || 'Todos los padrinos'}</option>
+                      {uniqueSponsors.map(sponsor => (
+                        <option key={sponsor.id} value={sponsor.name}>{sponsor.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Clear Filters Button */}
-              {(searchText || filterGrade || filterAcademicYear || filterStatus || filterPaymentStatus) && (
+              {(searchText || filterGrade || filterAcademicYear || filterStatus || filterPaymentStatus || filterSponsor) && (
                 <div className="mt-4 flex justify-end">
                   <button
                     onClick={handleClearFilters}
@@ -501,6 +582,24 @@ export default function StudentsCRUD() {
 
           {/* Students Table */}
           <div className="bg-white rounded-2xl shadow-sm border border-olive-100 overflow-hidden">
+            {/* Toggle for Sponsor Column */}
+            <div className="px-6 py-4 border-b border-olive-100 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-olive-800">{t.students?.table?.title || 'Lista de Estudiantes'}</h3>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <span className="text-sm text-neutral-700">{t.students?.table?.showSponsor || 'Mostrar Padrino'}</span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={showSponsorColumn}
+                    onChange={(e) => setShowSponsorColumn(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`w-11 h-6 rounded-full transition-colors ${showSponsorColumn ? 'bg-olive-600' : 'bg-neutral-300'}`}>
+                    <div className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${showSponsorColumn ? 'translate-x-5' : 'translate-x-0.5'} mt-0.5`}></div>
+                  </div>
+                </div>
+              </label>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-olive-50">
@@ -650,13 +749,39 @@ export default function StudentsCRUD() {
                         </div>
                       </div>
                     </th>
+                    {showSponsorColumn && (
+                      <th 
+                        className="px-6 py-4 text-left text-sm font-semibold text-olive-800 cursor-pointer hover:bg-olive-100 transition-colors select-none"
+                        onClick={() => handleSort('sponsor')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>{t.students?.table?.sponsor || 'Padrino'}</span>
+                          <div className="flex flex-col">
+                            <svg 
+                              className={`w-3 h-3 ${sortField === 'sponsor' && sortDirection === 'asc' ? 'text-olive-600' : 'text-olive-300'}`}
+                              fill="currentColor" 
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                            </svg>
+                            <svg 
+                              className={`w-3 h-3 -mt-1 ${sortField === 'sponsor' && sortDirection === 'desc' ? 'text-olive-600' : 'text-olive-300'}`}
+                              fill="currentColor" 
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </th>
+                    )}
                     <th className="px-6 py-4 text-left text-sm font-semibold text-olive-800">{t.students?.table?.actions || 'Acciones'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-olive-100">
                   {sortedStudents.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="px-6 py-12 text-center text-neutral-500">
+                      <td colSpan={showSponsorColumn ? 8 : 7} className="px-6 py-12 text-center text-neutral-500">
                         {t.students?.table?.noResults || 'No hay estudiantes que coincidan con los filtros'}
                       </td>
                     </tr>
@@ -721,6 +846,22 @@ export default function StudentsCRUD() {
                             {paymentStatusLabels[student.paymentStatus] || student.paymentStatus || 'Pendiente'}
                           </span>
                         </td>
+                        {showSponsorColumn && (
+                          <td className="px-6 py-4">
+                            {student.sponsor ? (
+                              <div className="text-sm">
+                                <div className="font-medium text-neutral-900">
+                                  {`${student.sponsor.firstName || ''} ${student.sponsor.lastName || ''}`.trim() || '-'}
+                                </div>
+                                {student.sponsor.email && (
+                                  <div className="text-xs text-neutral-500 mt-1">{student.sponsor.email}</div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-neutral-400">-</span>
+                            )}
+                          </td>
+                        )}
                         <td className="px-6 py-4">
                           <div className="flex gap-2 flex-wrap">
                             <button
@@ -734,6 +875,19 @@ export default function StudentsCRUD() {
                               className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                             >
                               {t.students?.table?.delete || 'Eliminar'}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedStudentForPayments(student);
+                                setShowPaymentsModal(true);
+                              }}
+                              className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center gap-1"
+                              title={t.students?.payments?.addPayment || 'Agregar Pago'}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              {t.students?.buttons?.addPayment || 'Pago'}
                             </button>
                             {(student.sponsorId || student.sponsor?.email) && (
                               <button
@@ -756,6 +910,60 @@ export default function StudentsCRUD() {
                 </tbody>
               </table>
             </div>
+            
+            {/* Pagination */}
+            {totalPages > 0 && (
+              <div className="px-6 py-4 bg-white border-t border-olive-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-neutral-600">
+                  {t.students?.table?.showing || 'Mostrando'} {totalRecords > 0 ? (recordsPerPage === 'all' ? 1 : (currentPage - 1) * recordsPerPage + 1) : 0} - {recordsPerPage === 'all' ? totalRecords : Math.min(currentPage * recordsPerPage, totalRecords)} {t.students?.table?.of || 'de'} {totalRecords} {t.students?.table?.results || 'resultados'}
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  {/* Records per page selector */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-neutral-600">{t.students?.table?.recordsPerPage || 'Registros por página'}:</label>
+                    <select
+                      value={recordsPerPage}
+                      onChange={(e) => {
+                        setRecordsPerPage(e.target.value === 'all' ? 'all' : parseInt(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="px-3 py-1.5 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white text-sm"
+                    >
+                      <option value="25">25</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                      <option value="all">{t.students?.table?.all || 'TODOS'}</option>
+                    </select>
+                  </div>
+                  
+                  {/* Pagination controls */}
+                  {recordsPerPage !== 'all' && totalPages > 1 && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1.5 text-sm border border-olive-200 rounded-lg hover:bg-olive-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {t.common?.previous || 'Anterior'}
+                      </button>
+                      
+                      <span className="text-sm text-neutral-600">
+                        {t.common?.page || 'Página'} {currentPage} {t.common?.of || 'de'} {totalPages}
+                      </span>
+                      
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1.5 text-sm border border-olive-200 rounded-lg hover:bg-olive-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {t.common?.next || 'Siguiente'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Payments Management Modal */}
@@ -1265,117 +1473,102 @@ function StudentFormModal({
               </div>
             </div>
 
-            {/* Sponsor Information (Optional) */}
-            <div className="border-b border-olive-100 pb-4">
-              <h3 className="text-lg font-semibold text-olive-800 mb-4">{t.students?.forms?.sponsorInfo || 'Información del Patrocinador (Opcional)'}</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    {t.students?.forms?.sponsorFirstName || 'Nombre del Patrocinador'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.sponsor?.firstName || ''}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      sponsor: { ...(prev.sponsor || {}), firstName: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900"
-                  />
+            {/* Sponsor Information (Read-only) */}
+            {formData.sponsorId || formData.sponsor ? (
+              <div className="border-b border-olive-100 pb-4">
+                <h3 className="text-lg font-semibold text-olive-800 mb-4">{t.students?.forms?.sponsorInfo || 'Información del Patrocinador'}</h3>
+                <div className="bg-olive-50 border border-olive-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-neutral-600 mb-2">
+                    {t.students?.forms?.sponsorReadOnly || 'La información del patrocinador se gestiona en el módulo de Patrocinadores. Edita el patrocinador desde allí.'}
+                  </p>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t.students?.forms?.sponsorFirstName || 'Nombre del Patrocinador'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.sponsor?.firstName || ''}
+                      disabled
+                      className="w-full px-4 py-2 border border-olive-200 rounded-lg bg-neutral-100 text-neutral-600 cursor-not-allowed"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    {t.students?.forms?.sponsorLastName || 'Apellido del Patrocinador'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.sponsor?.lastName || ''}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      sponsor: { ...(prev.sponsor || {}), lastName: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t.students?.forms?.sponsorLastName || 'Apellido del Patrocinador'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.sponsor?.lastName || ''}
+                      disabled
+                      className="w-full px-4 py-2 border border-olive-200 rounded-lg bg-neutral-100 text-neutral-600 cursor-not-allowed"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    {t.students?.forms?.sponsorEmail || 'Email del Patrocinador'}
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.sponsor?.email || ''}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      sponsor: { ...(prev.sponsor || {}), email: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t.students?.forms?.sponsorEmail || 'Email del Patrocinador'}
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.sponsor?.email || ''}
+                      disabled
+                      className="w-full px-4 py-2 border border-olive-200 rounded-lg bg-neutral-100 text-neutral-600 cursor-not-allowed"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    {t.students?.forms?.sponsorPhone || 'Teléfono del Patrocinador'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.sponsor?.phone || ''}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      sponsor: { ...(prev.sponsor || {}), phone: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t.students?.forms?.sponsorPhone || 'Teléfono del Patrocinador'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.sponsor?.phone || ''}
+                      disabled
+                      className="w-full px-4 py-2 border border-olive-200 rounded-lg bg-neutral-100 text-neutral-600 cursor-not-allowed"
+                    />
+                  </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    {t.students?.forms?.sponsorAddress || 'Dirección del Patrocinador'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.sponsor?.address || ''}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      sponsor: { ...(prev.sponsor || {}), address: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900"
-                  />
-                </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t.students?.forms?.sponsorAddress || 'Dirección del Patrocinador'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.sponsor?.address || ''}
+                      disabled
+                      className="w-full px-4 py-2 border border-olive-200 rounded-lg bg-neutral-100 text-neutral-600 cursor-not-allowed"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    {t.students?.forms?.sponsorCity || 'Ciudad del Patrocinador'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.sponsor?.city || ''}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      sponsor: { ...(prev.sponsor || {}), city: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t.students?.forms?.sponsorCity || 'Ciudad del Patrocinador'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.sponsor?.city || ''}
+                      disabled
+                      className="w-full px-4 py-2 border border-olive-200 rounded-lg bg-neutral-100 text-neutral-600 cursor-not-allowed"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    {t.students?.forms?.sponsorCountry || 'País del Patrocinador'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.sponsor?.country || ''}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      sponsor: { ...(prev.sponsor || {}), country: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t.students?.forms?.sponsorCountry || 'País del Patrocinador'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.sponsor?.country || ''}
+                      disabled
+                      className="w-full px-4 py-2 border border-olive-200 rounded-lg bg-neutral-100 text-neutral-600 cursor-not-allowed"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : null}
 
             {/* Notes */}
             <div>
@@ -1409,6 +1602,486 @@ function StudentFormModal({
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Payments Modal Component
+function PaymentsModal({ student, onClose, t }) {
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddPaymentForm, setShowAddPaymentForm] = useState(false);
+  const [editingPayment, setEditingPayment] = useState(null);
+  const [totalPaid, setTotalPaid] = useState(0);
+  const [totalDue, setTotalDue] = useState(0);
+  
+  const [paymentForm, setPaymentForm] = useState({
+    type: PAYMENT_TYPES.MONTHLY,
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    month: '',
+    receiptNumber: '',
+    notes: '',
+    status: PAYMENT_STATUSES.PAID,
+  });
+
+  const getStudentDisplayName = (student) => {
+    const first = student.firstName?.trim() || '';
+    const last = student.lastName?.trim() || '';
+    const combined = `${first} ${last}`.replace(/\s+/g, ' ').trim();
+    if (combined.length > 0) return combined;
+    return student.fullName || 'Sin nombre';
+  };
+
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      const paymentsList = await getStudentPayments(student.id);
+      setPayments(paymentsList);
+      
+      const paid = await getTotalPaid(student.id);
+      const due = await calculateTotalDue(student);
+      setTotalPaid(paid);
+      setTotalDue(due);
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      alert(t.students?.payments?.errorAdd || 'Error al cargar pagos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPayments();
+  }, [student.id]);
+
+  const handleAddPayment = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      await addPayment(student.id, paymentForm);
+      setShowAddPaymentForm(false);
+      setPaymentForm({
+        type: PAYMENT_TYPES.MONTHLY,
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        month: '',
+        receiptNumber: '',
+        notes: '',
+        status: PAYMENT_STATUSES.PAID,
+      });
+      await fetchPayments();
+    } catch (error) {
+      console.error('Error adding payment:', error);
+      alert(t.students?.payments?.errorAdd || 'Error al agregar pago');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditPayment = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      await updatePayment(student.id, editingPayment.id, paymentForm);
+      setEditingPayment(null);
+      setShowAddPaymentForm(false);
+      setPaymentForm({
+        type: PAYMENT_TYPES.MONTHLY,
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        month: '',
+        receiptNumber: '',
+        notes: '',
+        status: PAYMENT_STATUSES.PAID,
+      });
+      await fetchPayments();
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      alert(t.students?.payments?.errorUpdate || 'Error al actualizar pago');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePayment = async (paymentId) => {
+    if (!confirm(t.students?.payments?.confirmDelete || '¿Estás seguro de eliminar este pago?')) return;
+    
+    try {
+      setLoading(true);
+      await deletePayment(student.id, paymentId);
+      await fetchPayments();
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      alert(t.students?.payments?.errorDelete || 'Error al eliminar pago');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditClick = (payment) => {
+    setEditingPayment(payment);
+    setShowAddPaymentForm(true);
+    setPaymentForm({
+      type: payment.type || PAYMENT_TYPES.MONTHLY,
+      amount: payment.amount || '',
+      date: payment.date ? new Date(payment.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      month: payment.month || '',
+      receiptNumber: payment.receiptNumber || '',
+      notes: payment.notes || '',
+      status: payment.status || PAYMENT_STATUSES.PAID,
+    });
+  };
+
+  const handleCancelForm = () => {
+    setShowAddPaymentForm(false);
+    setEditingPayment(null);
+    setPaymentForm({
+      type: PAYMENT_TYPES.MONTHLY,
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      month: '',
+      receiptNumber: '',
+      notes: '',
+      status: PAYMENT_STATUSES.PAID,
+    });
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return dateString;
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', { 
+      style: 'currency', 
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount || 0);
+  };
+
+  const paymentTypeLabels = {
+    [PAYMENT_TYPES.ENROLLMENT]: t.students?.payments?.paymentTypeEnrollment || 'Matrícula',
+    [PAYMENT_TYPES.MONTHLY]: t.students?.payments?.paymentTypeMonthly || 'Cuota Mensual',
+    [PAYMENT_TYPES.FULL]: t.students?.payments?.paymentTypeFull || 'Pago Completo',
+    [PAYMENT_TYPES.BALANCE]: t.students?.payments?.paymentTypeBalance || 'Saldo Total',
+    [PAYMENT_TYPES.OTHER]: t.students?.payments?.paymentTypeOther || 'Otro',
+  };
+
+  const paymentStatusLabels = {
+    [PAYMENT_STATUSES.PAID]: t.students?.payments?.paymentStatusPaid || 'Pagado',
+    [PAYMENT_STATUSES.PENDING]: t.students?.payments?.paymentStatusPending || 'Pendiente',
+    [PAYMENT_STATUSES.CANCELLED]: t.students?.payments?.paymentStatusCancelled || 'Cancelado',
+  };
+
+  const monthsOptions = MONTHS.map((month, index) => ({
+    value: index + 1,
+    label: month,
+  }));
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-olive-100 px-6 py-4 flex items-center justify-between z-10">
+          <div>
+            <h2 className="text-2xl font-bold text-olive-800">
+              {t.students?.payments?.title || 'Gestión de Pagos'}
+            </h2>
+            <p className="text-sm text-neutral-600 mt-1">
+              {getStudentDisplayName(student)} - {student.matriculationNumber || ''}
+            </p>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="text-neutral-400 hover:text-neutral-600 text-3xl font-bold leading-none"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="p-6">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-olive-50 rounded-xl p-4 border border-olive-200">
+              <div className="text-sm text-neutral-600 mb-1">
+                {t.students?.payments?.totalDue || 'Total Adeudado'}
+              </div>
+              <div className="text-2xl font-bold text-olive-800">
+                {formatCurrency(totalDue)}
+              </div>
+            </div>
+            <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+              <div className="text-sm text-neutral-600 mb-1">
+                {t.students?.payments?.totalPaid || 'Total Pagado'}
+              </div>
+              <div className="text-2xl font-bold text-green-700">
+                {formatCurrency(totalPaid)}
+              </div>
+            </div>
+            <div className={`rounded-xl p-4 border ${
+              (totalDue - totalPaid) > 0 
+                ? 'bg-red-50 border-red-200' 
+                : 'bg-blue-50 border-blue-200'
+            }`}>
+              <div className="text-sm text-neutral-600 mb-1">
+                {t.students?.payments?.balance || 'Saldo'}
+              </div>
+              <div className={`text-2xl font-bold ${
+                (totalDue - totalPaid) > 0 ? 'text-red-700' : 'text-blue-700'
+              }`}>
+                {formatCurrency(totalDue - totalPaid)}
+              </div>
+            </div>
+          </div>
+
+          {/* Add Payment Button */}
+          {!showAddPaymentForm && (
+            <div className="mb-6">
+              <button
+                onClick={() => setShowAddPaymentForm(true)}
+                className="px-4 py-2 bg-olive-600 text-white rounded-lg hover:bg-olive-700 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                {t.students?.payments?.addPayment || 'Agregar Pago'}
+              </button>
+            </div>
+          )}
+
+          {/* Add/Edit Payment Form */}
+          {showAddPaymentForm && (
+            <div className="bg-olive-50 rounded-xl p-6 mb-6 border border-olive-200">
+              <h3 className="text-lg font-semibold text-olive-800 mb-4">
+                {editingPayment 
+                  ? (t.students?.payments?.editPayment || 'Editar Pago')
+                  : (t.students?.payments?.addPayment || 'Agregar Pago')
+                }
+              </h3>
+              <form onSubmit={editingPayment ? handleEditPayment : handleAddPayment} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t.students?.payments?.paymentType || 'Tipo de Pago'} <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={paymentForm.type}
+                      onChange={(e) => setPaymentForm(prev => ({ ...prev, type: e.target.value }))}
+                      className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white"
+                      required
+                    >
+                      {Object.entries(paymentTypeLabels).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t.students?.payments?.amount || 'Monto'} (USD) <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={paymentForm.amount}
+                        onChange={(e) => setPaymentForm(prev => ({ ...prev, amount: e.target.value }))}
+                        placeholder="0.00"
+                        className="w-full pl-8 pr-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t.students?.payments?.date || 'Fecha'} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={paymentForm.date}
+                      onChange={(e) => setPaymentForm(prev => ({ ...prev, date: e.target.value }))}
+                      className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900"
+                      required
+                    />
+                  </div>
+
+                  {paymentForm.type === PAYMENT_TYPES.MONTHLY && (
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        {t.students?.payments?.month || 'Mes'}
+                      </label>
+                      <select
+                        value={paymentForm.month}
+                        onChange={(e) => setPaymentForm(prev => ({ ...prev, month: e.target.value }))}
+                        className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white"
+                      >
+                        <option value="">{t.students?.payments?.monthSelect || 'Seleccionar mes'}</option>
+                        {monthsOptions.map(month => (
+                          <option key={month.value} value={month.value}>{month.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t.students?.payments?.receiptNumber || 'Número de Recibo'}
+                    </label>
+                    <input
+                      type="text"
+                      value={paymentForm.receiptNumber}
+                      onChange={(e) => setPaymentForm(prev => ({ ...prev, receiptNumber: e.target.value }))}
+                      className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t.students?.payments?.paymentStatus || 'Estado'}
+                    </label>
+                    <select
+                      value={paymentForm.status}
+                      onChange={(e) => setPaymentForm(prev => ({ ...prev, status: e.target.value }))}
+                      className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white"
+                    >
+                      {Object.entries(paymentStatusLabels).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    {t.students?.payments?.notes || 'Notas'}
+                  </label>
+                  <textarea
+                    value={paymentForm.notes}
+                    onChange={(e) => setPaymentForm(prev => ({ ...prev, notes: e.target.value }))}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={handleCancelForm}
+                    className="px-6 py-2 border border-olive-300 text-olive-700 rounded-lg hover:bg-olive-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-6 py-2 bg-olive-600 text-white rounded-lg hover:bg-olive-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (t.common?.loading || 'Guardando...') : 'Guardar'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Payments History */}
+          <div>
+            <h3 className="text-lg font-semibold text-olive-800 mb-4">
+              {t.students?.payments?.paymentsHistory || 'Historial de Pagos'}
+            </h3>
+            
+            {loading && payments.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-olive-600 mx-auto mb-4"></div>
+                <p className="text-neutral-600">{t.common?.loading || 'Cargando...'}</p>
+              </div>
+            ) : payments.length === 0 ? (
+              <div className="text-center py-8 text-neutral-500">
+                {t.students?.payments?.noPayments || 'No hay pagos registrados'}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-olive-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-olive-800">
+                        {t.students?.payments?.date || 'Fecha'}
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-olive-800">
+                        {t.students?.payments?.paymentType || 'Tipo'}
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-olive-800">
+                        {t.students?.payments?.amount || 'Monto'}
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-olive-800">
+                        {t.students?.payments?.receiptNumber || 'Recibo'}
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-olive-800">
+                        {t.students?.payments?.paymentStatus || 'Estado'}
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-olive-800">
+                        {t.students?.table?.actions || 'Acciones'}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-olive-100">
+                    {payments.map((payment) => (
+                      <tr key={payment.id} className="hover:bg-olive-50/30">
+                        <td className="px-4 py-3 text-neutral-700">
+                          {formatDate(payment.date)}
+                        </td>
+                        <td className="px-4 py-3 text-neutral-700">
+                          {paymentTypeLabels[payment.type] || payment.type}
+                          {payment.month && ` - ${MONTHS[parseInt(payment.month) - 1]}`}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-neutral-900">
+                          {formatCurrency(payment.amount)}
+                        </td>
+                        <td className="px-4 py-3 text-neutral-700">
+                          {payment.receiptNumber || '-'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            payment.status === PAYMENT_STATUSES.PAID ? 'bg-green-100 text-green-800' :
+                            payment.status === PAYMENT_STATUSES.PENDING ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {paymentStatusLabels[payment.status] || payment.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEditClick(payment)}
+                              className="px-3 py-1 text-sm bg-olive-600 text-white rounded hover:bg-olive-700 transition-colors"
+                            >
+                              {t.students?.table?.edit || 'Editar'}
+                            </button>
+                            <button
+                              onClick={() => handleDeletePayment(payment.id)}
+                              className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                            >
+                              {t.students?.table?.delete || 'Eliminar'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

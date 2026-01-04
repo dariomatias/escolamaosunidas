@@ -1,4 +1,4 @@
-import { collection, query, getDocs, getDoc, doc, addDoc, updateDoc, where, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, where, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 /**
@@ -143,6 +143,21 @@ export async function getSponsorsByCandidate(candidateId) {
     return sponsors;
   } catch (error) {
     console.error('Error getting sponsors by candidate:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a sponsor
+ * @param {string} sponsorId - The sponsor ID
+ * @returns {Promise<void>}
+ */
+export async function deleteSponsor(sponsorId) {
+  try {
+    const sponsorRef = doc(db, 'sponsors', sponsorId);
+    await deleteDoc(sponsorRef);
+  } catch (error) {
+    console.error('Error deleting sponsor:', error);
     throw error;
   }
 }

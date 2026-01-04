@@ -199,13 +199,14 @@ export async function getTotalPaid(studentId) {
  */
 export function calculateTotalDue(student) {
   // Default payment plan: Enrollment fee + 10 monthly fees
-  const enrollmentFee = parseFloat(student.enrollmentFee) || 20;
-  const monthlyFee = parseFloat(student.monthlyFee) || 40;
+  // All amounts are in USD (US Dollars)
+  const enrollmentFee = parseFloat(student.enrollmentFee) || 20; // USD
+  const monthlyFee = parseFloat(student.monthlyFee) || 40; // USD
   const numberOfMonths = parseInt(student.numberOfMonths) || 10;
   
   // If student has full payment amount, use that
   if (student.fullPaymentAmount) {
-    return parseFloat(student.fullPaymentAmount) || 420;
+    return parseFloat(student.fullPaymentAmount) || 420; // USD
   }
   
   return enrollmentFee + (monthlyFee * numberOfMonths);

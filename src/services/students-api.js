@@ -154,13 +154,32 @@ export async function generateNextMatriculationNumber() {
 /**
  * Update student status based on candidate status
  * @param {string} candidateId - The candidate ID
+ * @param {string} studentId - The student ID (optional, if candidate has studentId field)
  * @param {string} studentStatus - The new student status ('active' or 'inactive')
  * @returns {Promise<void>}
  */
-export async function updateStudentStatusByCandidateId(candidateId, studentStatus) {
+export async function updateStudentStatusByCandidateId(candidateId, studentStatus, studentId = null) {
   try {
-    const existingStudents = await getAllStudents();
-    const existingStudent = existingStudents.find(s => s.candidateId === candidateId);
+    let existingStudent = null;
+    
+    // If studentId is provided, use it directly
+    if (studentId) {
+      try {
+        const studentRef = doc(db, 'students', studentId);
+        const studentSnap = await getDoc(studentRef);
+        if (studentSnap.exists()) {
+          existingStudent = { id: studentSnap.id, ...studentSnap.data() };
+        }
+      } catch (error) {
+        console.error(`Error getting student by ID ${studentId}:`, error);
+      }
+    }
+    
+    // If not found by studentId, search by candidateId
+    if (!existingStudent) {
+      const existingStudents = await getAllStudents();
+      existingStudent = existingStudents.find(s => s.candidateId === candidateId);
+    }
     
     if (existingStudent) {
       const studentRef = doc(db, 'students', existingStudent.id);
@@ -176,6 +195,123 @@ export async function updateStudentStatusByCandidateId(candidateId, studentStatu
 }
 
 /**
+ * Create students for all candidates that don't have a studentId
+ * This is a migration function to create students for existing candidates
+ * @returns {Promise<Object>} Summary of the migration
+ */
+export async function createStudentsForAllCandidates() {
+  try {
+    // Get all candidates
+    const candidatesRef = collection(db, 'candidates');
+    const candidatesSnapshot = await getDocs(candidatesRef);
+    
+    const candidates = [];
+    candidatesSnapshot.forEach((doc) => {
+      candidates.push({ id: doc.id, ...doc.data() });
+    });
+    
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+    let errors = 0;
+    const errorDetails = [];
+    
+    for (const candidate of candidates) {
+      try {
+        // Skip if candidate already has a valid studentId
+        if (candidate.studentId) {
+          const studentRef = doc(db, 'students', candidate.studentId);
+          const studentSnap = await getDoc(studentRef);
+          
+          if (studentSnap.exists()) {
+            skipped++;
+            continue;
+          }
+        }
+        
+        // Create student
+        const studentId = await createStudentFromCandidateData(candidate);
+        
+        // Update candidate with studentId
+        const candidateRef = doc(db, 'candidates', candidate.id);
+        await updateDoc(candidateRef, {
+          studentId: studentId,
+          updatedAt: new Date().toISOString(),
+        });
+        
+        created++;
+        updated++;
+      } catch (error) {
+        errors++;
+        const candidateName = candidate.fullName || `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || candidate.id;
+        errorDetails.push({
+          candidateId: candidate.id,
+          candidateName,
+          error: error.message,
+        });
+        console.error(`Error creating student for candidate ${candidate.id}:`, error);
+      }
+    }
+    
+    return {
+      total: candidates.length,
+      created,
+      updated,
+      skipped,
+      errors,
+      errorDetails,
+    };
+  } catch (error) {
+    console.error('Error in createStudentsForAllCandidates:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create a student from candidate data (used when candidate is first created)
+ * @param {Object} candidateData - The candidate data
+ * @returns {Promise<string>} The ID of the created student
+ */
+export async function createStudentFromCandidateData(candidateData) {
+  try {
+    // Map candidate fields to student fields
+    const trimmedFirstName = (candidateData.firstName || '').trim();
+    const trimmedLastName = (candidateData.lastName || '').trim();
+    const fullName = `${trimmedFirstName} ${trimmedLastName}`.replace(/\s+/g, ' ').trim();
+    
+    const studentData = {
+      firstName: trimmedFirstName,
+      lastName: trimmedLastName,
+      fullName,
+      documentId: candidateData.documentId || '',
+      gender: candidateData.gender || '',
+      birthDate: candidateData.birthDate || '',
+      currentGrade: candidateData.level || 'Jardín',
+      academicYear: candidateData.period || new Date().getFullYear().toString(),
+      status: 'inactive', // Always inactive when created from candidate
+      paymentStatus: 'pending',
+      city: candidateData.city || 'Lichinga',
+      province: candidateData.province || 'Niassa',
+      country: candidateData.country || 'Mozambique',
+      notes: candidateData.notes || '',
+      photoURL: candidateData.photoURL || '',
+      photoPath: candidateData.photoPath || '',
+      matriculationNumber: await generateNextMatriculationNumber(),
+      enrollmentDate: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const studentsRef = collection(db, 'students');
+    const docRef = await addDoc(studentsRef, studentData);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating student from candidate data:', error);
+    throw error;
+  }
+}
+
+/**
  * Create or update a student from an approved candidate
  * @param {Object} candidateData - The candidate data
  * @param {Object} sponsorData - The sponsor data (optional)
@@ -183,9 +319,19 @@ export async function updateStudentStatusByCandidateId(candidateId, studentStatu
  */
 export async function createOrUpdateStudentFromCandidate(candidateData, sponsorData = null) {
   try {
-    // Check if student already exists for this candidate
+    // Check if student already exists for this candidate (by candidateId or studentId)
     const existingStudents = await getAllStudents();
-    const existingStudent = existingStudents.find(s => s.candidateId === candidateData.id);
+    let existingStudent = null;
+    
+    // First try to find by studentId if candidate has it
+    if (candidateData.studentId) {
+      existingStudent = existingStudents.find(s => s.id === candidateData.studentId);
+    }
+    
+    // If not found, try by candidateId
+    if (!existingStudent && candidateData.id) {
+      existingStudent = existingStudents.find(s => s.candidateId === candidateData.id);
+    }
     
     // Map candidate fields to student fields
     const studentData = {
@@ -252,6 +398,8 @@ export async function createOrUpdateStudentFromCandidate(candidateData, sponsorD
       studentData.matriculationNumber = await generateNextMatriculationNumber();
       studentData.enrollmentDate = new Date().toISOString();
       studentData.createdAt = new Date().toISOString();
+      // Set candidateId reference
+      studentData.candidateId = candidateData.id;
       
       const studentsRef = collection(db, 'students');
       const docRef = await addDoc(studentsRef, studentData);
