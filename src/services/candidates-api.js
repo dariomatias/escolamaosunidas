@@ -1,4 +1,4 @@
-import { collection, query, getDocs, getDoc, doc, where, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, getDoc, doc, where, orderBy, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 /**
@@ -135,3 +135,60 @@ export async function getPublicCandidates() {
   }
 }
 
+/**
+ * Update candidate data from student data (for synchronization)
+ * @param {string} candidateId - The candidate ID
+ * @param {Object} studentData - The student data to sync
+ * @returns {Promise<void>}
+ */
+export async function updateCandidateFromStudent(candidateId, studentData) {
+  try {
+    const candidateRef = doc(db, 'candidates', candidateId);
+    
+    // Map student fields to candidate fields
+    const updateData = {
+      firstName: studentData.firstName || '',
+      lastName: studentData.lastName || '',
+      fullName: studentData.fullName || `${studentData.firstName || ''} ${studentData.lastName || ''}`.trim(),
+      documentId: studentData.documentId || '',
+      gender: studentData.gender || '',
+      birthDate: studentData.birthDate || '',
+      level: studentData.currentGrade || '',
+      period: studentData.academicYear || '',
+      city: studentData.city || '',
+      province: studentData.province || '',
+      country: studentData.country || '',
+      notes: studentData.notes || '',
+      photoURL: studentData.photoURL || '',
+      photoPath: studentData.photoPath || '',
+      updatedAt: new Date().toISOString(),
+    };
+    
+    await updateDoc(candidateRef, updateData);
+  } catch (error) {
+    console.error('Error updating candidate from student:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get candidate by student ID (via candidateId field in student)
+ * @param {string} studentId - The student ID
+ * @returns {Promise<Object|null>} Candidate data or null
+ */
+export async function getCandidateByStudentId(studentId) {
+  try {
+    // First get the student to find candidateId
+    const { getStudentById } = await import('./students-api');
+    const student = await getStudentById(studentId);
+    
+    if (student.candidateId) {
+      return await getCandidateById(student.candidateId);
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting candidate by student ID:', error);
+    return null;
+  }
+}

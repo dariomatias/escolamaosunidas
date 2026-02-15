@@ -8,6 +8,7 @@ import AdminDashboard from './components/AdminDashboard';
 import CandidatesCRUD from './components/CandidatesCRUD';
 import StudentsCRUD from './components/StudentsCRUD';
 import SponsorsCRUD from './components/SponsorsCRUD';
+import FinanceDashboard from './components/FinanceDashboard';
 
 function ProtectedRoute({ children }) {
   const [user, setUser] = useState(null);
@@ -71,6 +72,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <SponsorsCRUD />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/finance" 
+          element={
+            <ProtectedRoute>
+              <FinanceDashboard />
             </ProtectedRoute>
           } 
         />

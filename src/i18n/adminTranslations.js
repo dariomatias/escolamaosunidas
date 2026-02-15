@@ -183,6 +183,60 @@ export const ADMIN_TRANSLATIONS = {
         highPriority: 'Prioridad Alta',
       },
     },
+    finance: {
+      title: 'Módulo de Finanzas',
+      subtitle: 'Resumen de pagos y estado financiero de los becados activos.',
+      details: {
+        title: 'Detalle Financiero',
+        subtitle: 'Explora gráficos adicionales y el detalle por estudiante.',
+        expand: 'Ver detalle',
+        collapse: 'Ocultar detalle',
+        noData: 'Sin datos disponibles.',
+      },
+      cards: {
+        students: 'Becados activos',
+        totalPaid: 'Recaudado',
+        remaining: 'Pendiente',
+        totalDue: 'Total a cobrar',
+      },
+      labels: {
+        noGrade: 'Sin curso',
+        noName: 'Sin nombre',
+      },
+      charts: {
+        amounts: {
+          title: 'Totales',
+          paid: 'Recaudado',
+          remaining: 'Pendiente',
+        },
+        status: {
+          title: 'Estado de Pago',
+          paid: 'Pagado',
+          current: 'Al Día',
+          overdue: 'Atrasado',
+          pending: 'Pendiente',
+        },
+        gradePaid: {
+          title: 'Recaudado por curso',
+        },
+        gradeRemaining: {
+          title: 'Pendiente por curso',
+        },
+      },
+      tables: {
+        topBalances: 'Mayores saldos pendientes',
+        student: 'Estudiante',
+        grade: 'Curso',
+        status: 'Estado',
+        due: 'Total',
+        paid: 'Pagado',
+        remaining: 'Pendiente',
+      },
+      note: 'Los totales se calculan usando los pagos registrados en cada estudiante.',
+      errors: {
+        load: 'Error al cargar datos financieros.',
+      },
+    },
     statuses: {
       pending: 'Pendiente',
       active: 'Activo',
@@ -392,6 +446,60 @@ export const ADMIN_TRANSLATIONS = {
         levels: 'Níveis diferentes',
         birthdates: 'Com data de nascimento',
         highPriority: 'Prioridade alta',
+      },
+    },
+    finance: {
+      title: 'Módulo de Finanças',
+      subtitle: 'Resumo de pagamentos e status financeiro dos bolsistas ativos.',
+      details: {
+        title: 'Detalhe Financeiro',
+        subtitle: 'Explore gráficos adicionais e o detalhe por estudante.',
+        expand: 'Ver detalhe',
+        collapse: 'Ocultar detalhe',
+        noData: 'Sem dados disponíveis.',
+      },
+      cards: {
+        students: 'Bolsistas ativos',
+        totalPaid: 'Arrecadado',
+        remaining: 'Pendente',
+        totalDue: 'Total a receber',
+      },
+      labels: {
+        noGrade: 'Sem turma',
+        noName: 'Sem nome',
+      },
+      charts: {
+        amounts: {
+          title: 'Totais',
+          paid: 'Arrecadado',
+          remaining: 'Pendente',
+        },
+        status: {
+          title: 'Status de Pagamento',
+          paid: 'Pago',
+          current: 'Em dia',
+          overdue: 'Atrasado',
+          pending: 'Pendente',
+        },
+        gradePaid: {
+          title: 'Arrecadado por turma',
+        },
+        gradeRemaining: {
+          title: 'Pendente por turma',
+        },
+      },
+      tables: {
+        topBalances: 'Maiores saldos pendentes',
+        student: 'Estudante',
+        grade: 'Turma',
+        status: 'Status',
+        due: 'Total',
+        paid: 'Pago',
+        remaining: 'Pendente',
+      },
+      note: 'Os totais são calculados usando os pagamentos registrados em cada estudante.',
+      errors: {
+        load: 'Erro ao carregar dados financeiros.',
       },
     },
     statuses: {
@@ -605,6 +713,60 @@ export const ADMIN_TRANSLATIONS = {
         levels: 'Distinct levels',
         birthdates: 'With birth date',
         highPriority: 'High priority',
+      },
+    },
+    finance: {
+      title: 'Finance Module',
+      subtitle: 'Payment summary and financial status for active sponsored students.',
+      details: {
+        title: 'Financial Details',
+        subtitle: 'Explore extra charts and per-student details.',
+        expand: 'Show details',
+        collapse: 'Hide details',
+        noData: 'No data available.',
+      },
+      cards: {
+        students: 'Active sponsored',
+        totalPaid: 'Collected',
+        remaining: 'Remaining',
+        totalDue: 'Total due',
+      },
+      labels: {
+        noGrade: 'No grade',
+        noName: 'No name',
+      },
+      charts: {
+        amounts: {
+          title: 'Totals',
+          paid: 'Collected',
+          remaining: 'Remaining',
+        },
+        status: {
+          title: 'Payment Status',
+          paid: 'Paid',
+          current: 'Current',
+          overdue: 'Overdue',
+          pending: 'Pending',
+        },
+        gradePaid: {
+          title: 'Collected by grade',
+        },
+        gradeRemaining: {
+          title: 'Remaining by grade',
+        },
+      },
+      tables: {
+        topBalances: 'Highest outstanding balances',
+        student: 'Student',
+        grade: 'Grade',
+        status: 'Status',
+        due: 'Total',
+        paid: 'Paid',
+        remaining: 'Remaining',
+      },
+      note: 'Totals are calculated using payments recorded on each student.',
+      errors: {
+        load: 'Error loading financial data.',
       },
     },
     statuses: {

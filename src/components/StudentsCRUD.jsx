@@ -37,6 +37,7 @@ export default function StudentsCRUD() {
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
+  const [viewingStudent, setViewingStudent] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPaymentsModal, setShowPaymentsModal] = useState(false);
   const [selectedStudentForPayments, setSelectedStudentForPayments] = useState(null);
@@ -49,8 +50,7 @@ export default function StudentsCRUD() {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPaymentStatus, setFilterPaymentStatus] = useState('');
   const [filterSponsor, setFilterSponsor] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [recordsPerPage, setRecordsPerPage] = useState(25);
+  const [visibleItems, setVisibleItems] = useState(50); // Number of items to render initially
   const [showSponsorColumn, setShowSponsorColumn] = useState(false);
 
   const t = ADMIN_TRANSLATIONS[locale] || ADMIN_TRANSLATIONS[ADMIN_DEFAULT_LOCALE];
@@ -68,6 +68,33 @@ export default function StudentsCRUD() {
     const combined = `${first} ${last}`.replace(/\s+/g, ' ').trim();
     if (combined.length > 0) return combined;
     return student.fullName || 'Sin nombre';
+  };
+
+  // Helper function for date formatting (dd/mm/yyyy) - handles timezone issues
+  const formatDateToDDMMYYYY = (dateString) => {
+    if (!dateString) return '';
+    try {
+      // Handle ISO date strings (YYYY-MM-DD) without timezone issues
+      let date;
+      if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        // If it's YYYY-MM-DD format, parse it as local date to avoid timezone issues
+        const [year, month, day] = dateString.split('-').map(Number);
+        date = new Date(year, month - 1, day);
+      } else if (typeof dateString === 'string' && dateString.includes('T')) {
+        // If it's an ISO string with time, parse it carefully
+        date = new Date(dateString);
+      } else {
+        date = new Date(dateString);
+      }
+      
+      if (isNaN(date.getTime())) return '';
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return '';
+    }
   };
 
   const fetchStudents = async () => {
@@ -205,13 +232,45 @@ export default function StudentsCRUD() {
         .replace(/\s+/g, ' ')
         .trim() || '';
       
-      await updateDoc(studentRef, {
+      const finalStudentData = {
         ...updateData,
         firstName: firstName || '',
         lastName: lastName || '',
         fullName: computedFullName,
         updatedAt: new Date().toISOString(),
-      });
+      };
+      
+      await updateDoc(studentRef, finalStudentData);
+      
+      // Sync student data to associated candidate (if exists)
+      const candidateId = currentStudent?.candidateId;
+      if (candidateId) {
+        try {
+          const { updateCandidateFromStudent } = await import('../services/candidates-api');
+          // Use the final updated student data for synchronization
+          await updateCandidateFromStudent(candidateId, {
+            firstName: finalStudentData.firstName,
+            lastName: finalStudentData.lastName,
+            fullName: finalStudentData.fullName,
+            documentId: finalStudentData.documentId || '',
+            gender: finalStudentData.gender || '',
+            birthDate: finalStudentData.birthDate || '',
+            currentGrade: finalStudentData.currentGrade || '',
+            academicYear: finalStudentData.academicYear || '',
+            city: finalStudentData.city || '',
+            province: finalStudentData.province || '',
+            country: finalStudentData.country || '',
+            notes: finalStudentData.notes || '',
+            // Use the photo data from the final update (includes newly uploaded photos)
+            photoURL: finalStudentData.photoURL || '',
+            photoPath: finalStudentData.photoPath || '',
+          });
+        } catch (candidateError) {
+          console.error('Error syncing student to candidate:', candidateError);
+          // Don't block the student update if candidate sync fails
+        }
+      }
+      
       setEditingStudent(null);
       await fetchStudents();
     } catch (error) {
@@ -372,23 +431,31 @@ export default function StudentsCRUD() {
     return sorted;
   }, [students, sortField, sortDirection, statusLabels, paymentStatusLabels, searchText, filterGrade, filterAcademicYear, filterStatus, filterPaymentStatus, filterSponsor]);
 
-  // Pagination logic
-  const paginatedStudents = useMemo(() => {
-    if (!sortedStudents || sortedStudents.length === 0) return [];
-    const totalRecords = sortedStudents.length;
-    if (recordsPerPage === 'all') return sortedStudents;
-    const startIndex = (currentPage - 1) * recordsPerPage;
-    const endIndex = startIndex + recordsPerPage;
-    return sortedStudents.slice(startIndex, endIndex);
-  }, [sortedStudents, currentPage, recordsPerPage]);
+  // Virtual scrolling - render items as you scroll
+  const displayedStudents = useMemo(() => {
+    return sortedStudents.slice(0, visibleItems);
+  }, [sortedStudents, visibleItems]);
 
-  const totalRecords = sortedStudents.length;
-  const totalPages = recordsPerPage === 'all' ? 1 : Math.ceil(totalRecords / recordsPerPage);
-
-  // Reset to page 1 when filters change
+  // Reset visible items when filters change
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchText, filterGrade, filterAcademicYear, filterStatus, filterPaymentStatus, filterSponsor, recordsPerPage]);
+    setVisibleItems(50);
+  }, [searchText, filterGrade, filterAcademicYear, filterStatus, filterPaymentStatus, filterSponsor]);
+
+  // Infinite scroll handler - using window scroll for page-level scrolling
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollBottom = window.innerHeight + window.scrollY;
+      const documentHeight = document.documentElement.scrollHeight;
+      
+      // Load more when within 500px of bottom
+      if (documentHeight - scrollBottom < 500 && visibleItems < sortedStudents.length) {
+        setVisibleItems(prev => Math.min(prev + 50, sortedStudents.length));
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [visibleItems, sortedStudents.length]);
 
   if (loading) {
     return (
@@ -779,33 +846,55 @@ export default function StudentsCRUD() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-olive-100">
-                  {sortedStudents.length === 0 ? (
+                  {displayedStudents.length === 0 ? (
                     <tr>
                       <td colSpan={showSponsorColumn ? 8 : 7} className="px-6 py-12 text-center text-neutral-500">
                         {t.students?.table?.noResults || 'No hay estudiantes que coincidan con los filtros'}
                       </td>
                     </tr>
                   ) : (
-                    paginatedStudents.map((student) => (
-                      <tr key={student.id} className="hover:bg-olive-50/30 transition-colors">
+                    displayedStudents.map((student) => (
+                      <tr 
+                        key={student.id} 
+                        onClick={() => setViewingStudent(student)}
+                        className="hover:bg-olive-100/50 cursor-pointer transition-colors"
+                      >
                         <td className="px-6 py-4">
                           <div 
                             className="relative flex-shrink-0 overflow-hidden rounded-lg border-2 border-olive-200 bg-olive-50 flex items-center justify-center"
                             style={{ width: '48px', height: '48px', minWidth: '48px', minHeight: '48px' }}
                           >
-                            {student.gender === 'femenino' || student.gender === 'female' ? (
-                              <svg className="w-8 h-8 text-pink-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-                              </svg>
-                            ) : student.gender === 'masculino' || student.gender === 'male' ? (
-                              <svg className="w-8 h-8 text-blue-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-                              </svg>
-                            ) : (
-                              <svg className="w-8 h-8 text-olive-600" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                              </svg>
-                            )}
+                            {student.photoURL ? (
+                              <img 
+                                src={student.photoURL} 
+                                alt={getStudentDisplayName(student)}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  // Si la imagen falla al cargar, ocultarla y mostrar el icono
+                                  e.target.style.display = 'none';
+                                  const parent = e.target.parentElement;
+                                  const icon = parent.querySelector('.fallback-icon');
+                                  if (icon) icon.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className={`fallback-icon ${student.photoURL ? 'hidden' : 'flex'} items-center justify-center w-full h-full`}
+                            >
+                              {student.gender === 'femenino' || student.gender === 'female' ? (
+                                <svg className="w-8 h-8 text-pink-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                                </svg>
+                              ) : student.gender === 'masculino' || student.gender === 'male' ? (
+                                <svg className="w-8 h-8 text-blue-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                                </svg>
+                              ) : (
+                                <svg className="w-8 h-8 text-olive-600" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                                </svg>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -818,7 +907,7 @@ export default function StudentsCRUD() {
                           )}
                           {student.birthDate && (
                             <div className="text-sm text-neutral-500">
-                              {new Date(student.birthDate).toLocaleDateString()}
+                              {formatDateToDDMMYYYY(student.birthDate)}
                             </div>
                           )}
                         </td>
@@ -865,19 +954,26 @@ export default function StudentsCRUD() {
                         <td className="px-6 py-4">
                           <div className="flex gap-2 flex-wrap">
                             <button
-                              onClick={() => setEditingStudent(student)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingStudent(student);
+                              }}
                               className="px-3 py-1 text-sm bg-olive-600 text-white rounded hover:bg-olive-700 transition-colors"
                             >
                               {t.students?.table?.edit || 'Editar'}
                             </button>
                             <button
-                              onClick={() => handleDelete(student.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(student.id);
+                              }}
                               className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                             >
                               {t.students?.table?.delete || 'Eliminar'}
                             </button>
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setSelectedStudentForPayments(student);
                                 setShowPaymentsModal(true);
                               }}
@@ -889,9 +985,12 @@ export default function StudentsCRUD() {
                               </svg>
                               {t.students?.buttons?.addPayment || 'Pago'}
                             </button>
-                            {(student.sponsorId || student.sponsor?.email) && (
+                            {(student.sponsorId || student.sponsor?.email) && student.paymentStatus !== 'paid' && (
                               <button
-                                onClick={() => handleSendPaymentReminder(student)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSendPaymentReminder(student);
+                                }}
                                 className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-1"
                                 title={t.students?.table?.sendReminder || 'Enviar recordatorio de pago'}
                                 disabled={isLoading}
@@ -911,60 +1010,33 @@ export default function StudentsCRUD() {
               </table>
             </div>
             
-            {/* Pagination */}
-            {totalPages > 0 && (
-              <div className="px-6 py-4 bg-white border-t border-olive-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-sm text-neutral-600">
-                  {t.students?.table?.showing || 'Mostrando'} {totalRecords > 0 ? (recordsPerPage === 'all' ? 1 : (currentPage - 1) * recordsPerPage + 1) : 0} - {recordsPerPage === 'all' ? totalRecords : Math.min(currentPage * recordsPerPage, totalRecords)} {t.students?.table?.of || 'de'} {totalRecords} {t.students?.table?.results || 'resultados'}
-                </div>
-                
-                <div className="flex items-center gap-4">
-                  {/* Records per page selector */}
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-neutral-600">{t.students?.table?.recordsPerPage || 'Registros por página'}:</label>
-                    <select
-                      value={recordsPerPage}
-                      onChange={(e) => {
-                        setRecordsPerPage(e.target.value === 'all' ? 'all' : parseInt(e.target.value));
-                        setCurrentPage(1);
-                      }}
-                      className="px-3 py-1.5 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white text-sm"
-                    >
-                      <option value="25">25</option>
-                      <option value="50">50</option>
-                      <option value="100">100</option>
-                      <option value="all">{t.students?.table?.all || 'TODOS'}</option>
-                    </select>
-                  </div>
-                  
-                  {/* Pagination controls */}
-                  {recordsPerPage !== 'all' && totalPages > 1 && (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        disabled={currentPage === 1}
-                        className="px-3 py-1.5 text-sm border border-olive-200 rounded-lg hover:bg-olive-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {t.common?.previous || 'Anterior'}
-                      </button>
-                      
-                      <span className="text-sm text-neutral-600">
-                        {t.common?.page || 'Página'} {currentPage} {t.common?.of || 'de'} {totalPages}
-                      </span>
-                      
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                        disabled={currentPage === totalPages}
-                        className="px-3 py-1.5 text-sm border border-olive-200 rounded-lg hover:bg-olive-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {t.common?.next || 'Siguiente'}
-                      </button>
-                    </div>
-                  )}
-                </div>
+            {/* Results Count */}
+            <div className="px-6 py-4 bg-white border-t border-olive-100">
+              <div className="text-sm text-neutral-600">
+                {t.students?.table?.showing || 'Mostrando'} {displayedStudents.length} {t.students?.table?.of || 'de'} {sortedStudents.length} {t.students?.table?.results || 'resultados'}
+                {visibleItems < sortedStudents.length && (
+                  <span className="ml-2 text-olive-600">
+                    ({t.students?.table?.scrollForMore || 'Desplázate para ver más'})
+                  </span>
+                )}
               </div>
-            )}
+            </div>
           </div>
+
+          {/* View Details Modal */}
+          {viewingStudent && (
+            <StudentDetailModal
+              student={viewingStudent}
+              onClose={() => setViewingStudent(null)}
+              onEdit={() => {
+                setViewingStudent(null);
+                setEditingStudent(viewingStudent);
+              }}
+              t={t}
+              statusLabels={statusLabels}
+              paymentStatusLabels={paymentStatusLabels}
+            />
+          )}
 
           {/* Payments Management Modal */}
           {showPaymentsModal && selectedStudentForPayments && (
@@ -1031,6 +1103,202 @@ export default function StudentsCRUD() {
               </div>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Student Detail Modal Component
+function StudentDetailModal({ student, onClose, onEdit, t, statusLabels, paymentStatusLabels }) {
+  const getStudentDisplayName = (student) => {
+    const first = student.firstName?.trim() || '';
+    const last = student.lastName?.trim() || '';
+    const combined = `${first} ${last}`.replace(/\s+/g, ' ').trim();
+    if (combined.length > 0) return combined;
+    return student.fullName || 'Sin nombre';
+  };
+
+  const fullName = getStudentDisplayName(student);
+  const sponsor = student.sponsor || {};
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '(No especificado)';
+    try {
+      // Handle ISO date strings (YYYY-MM-DD) without timezone issues
+      let date;
+      if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        const [year, month, day] = dateString.split('-').map(Number);
+        date = new Date(year, month - 1, day);
+      } else if (typeof dateString === 'string' && dateString.includes('T')) {
+        date = new Date(dateString);
+      } else {
+        date = new Date(dateString);
+      }
+      
+      if (isNaN(date.getTime())) return dateString;
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return dateString;
+    }
+  };
+
+  const InfoField = ({ label, value, className = '' }) => (
+    <div className={`py-3 border-b border-olive-100 ${className}`}>
+      <div className="text-sm font-semibold text-olive-700 mb-1">{label}</div>
+      <div className="text-base text-neutral-800">{value || '(No especificado)'}</div>
+    </div>
+  );
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 bg-white border-b border-olive-100 px-6 py-4 flex items-center justify-between z-10">
+          <h2 className="text-2xl font-bold text-olive-800">Detalle del Estudiante</h2>
+          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 text-2xl" aria-label="Close">×</button>
+        </div>
+        
+        <div className="p-6">
+          {/* Header con foto y nombre */}
+          <div className="flex items-start gap-6 mb-8 pb-6 border-b-2 border-olive-200">
+            <div className="flex-shrink-0">
+              {student.photoURL ? (
+                <img 
+                  src={student.photoURL} 
+                  alt={fullName}
+                  className="w-32 h-32 rounded-lg object-cover border-4 border-olive-200 shadow-lg"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div 
+                className={`w-32 h-32 rounded-lg bg-olive-100 border-4 border-olive-200 flex items-center justify-center text-olive-600 font-bold text-4xl shadow-lg ${student.photoURL ? 'hidden' : 'flex'}`}
+              >
+                {fullName.charAt(0).toUpperCase()}
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-3xl font-bold text-olive-800 mb-2">{fullName}</h3>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                  student.status === 'active' ? 'bg-green-100 text-green-800' :
+                  student.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                  student.status === 'graduated' ? 'bg-blue-100 text-blue-800' :
+                  student.status === 'suspended' ? 'bg-red-100 text-red-800' :
+                  'bg-neutral-100 text-neutral-800'
+                }`}>
+                  {statusLabels[student.status] || student.status || 'Desconocido'}
+                </span>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                  student.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                  student.paymentStatus === 'current' ? 'bg-blue-100 text-blue-800' :
+                  student.paymentStatus === 'overdue' ? 'bg-red-100 text-red-800' :
+                  student.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-neutral-100 text-neutral-800'
+                }`}>
+                  {paymentStatusLabels[student.paymentStatus] || student.paymentStatus || 'Pendiente'}
+                </span>
+              </div>
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={onEdit}
+                  className="px-4 py-2 bg-olive-600 text-white rounded-lg hover:bg-olive-700 transition-colors font-semibold"
+                >
+                  ✏️ {t.students?.table?.edit || 'Editar'}
+                </button>
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-100 text-neutral-700 transition-colors font-semibold"
+                >
+                  {t.students?.buttons?.cancel || 'Cerrar'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Información Básica */}
+          <div className="mb-6">
+            <h4 className="text-xl font-bold text-olive-800 mb-4 pb-2 border-b border-olive-200">
+              {t.students?.forms?.basicInfo || 'Información Básica'}
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InfoField label={t.students?.forms?.firstName || 'Nombre'} value={student.firstName} />
+              <InfoField label={t.students?.forms?.lastName || 'Apellido'} value={student.lastName} />
+              <InfoField label={t.students?.forms?.documentId || 'Documento de Identidad'} value={student.documentId || '-'} />
+              <InfoField label={t.students?.forms?.matriculationNumber || 'Número de Matrícula'} value={student.matriculationNumber || '-'} />
+              <InfoField label={t.students?.forms?.birthDate || 'Fecha de Nacimiento'} value={formatDate(student.birthDate)} />
+              <InfoField label={t.students?.forms?.gender || 'Género'} value={student.gender || '-'} />
+              <InfoField label={t.students?.forms?.currentGrade || 'Grado Actual'} value={student.currentGrade || '-'} />
+              <InfoField label={t.students?.forms?.academicYear || 'Año Académico'} value={student.academicYear || '-'} />
+              <InfoField label={t.students?.forms?.enrollmentDate || 'Fecha de Matriculación'} value={formatDate(student.enrollmentDate)} />
+              <InfoField label={t.students?.forms?.city || 'Ciudad'} value={student.city || '-'} />
+              <InfoField label={t.students?.forms?.province || 'Provincia'} value={student.province || '-'} />
+              <InfoField label={t.students?.forms?.country || 'País'} value={student.country || '-'} />
+            </div>
+          </div>
+
+          {/* Información del Patrocinador */}
+          {student.sponsorId || sponsor.firstName ? (
+            <div className="mb-6">
+              <h4 className="text-xl font-bold text-olive-800 mb-4 pb-2 border-b border-olive-200">
+                {t.students?.forms?.sponsor || 'Patrocinador'}
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InfoField label={t.sponsors?.forms?.firstName || 'Nombre'} value={sponsor.firstName} />
+                <InfoField label={t.sponsors?.forms?.lastName || 'Apellido'} value={sponsor.lastName} />
+                <InfoField label={t.sponsors?.forms?.email || 'Email'} value={sponsor.email || '-'} />
+                <InfoField label={t.sponsors?.forms?.phone || 'Teléfono'} value={sponsor.phone || '-'} />
+                <InfoField label={t.sponsors?.forms?.address || 'Dirección'} value={sponsor.address || '-'} />
+                <InfoField label={t.sponsors?.forms?.city || 'Ciudad'} value={sponsor.city || '-'} />
+                <InfoField label={t.sponsors?.forms?.country || 'País'} value={sponsor.country || '-'} />
+                {student.sponsorAssignedDate && (
+                  <InfoField label="Fecha de Asignación" value={formatDate(student.sponsorAssignedDate)} />
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="mb-6">
+              <h4 className="text-xl font-bold text-olive-800 mb-4 pb-2 border-b border-olive-200">
+                {t.students?.forms?.sponsor || 'Patrocinador'}
+              </h4>
+              <p className="text-neutral-600">No tiene patrocinador asignado</p>
+            </div>
+          )}
+
+          {/* Notas */}
+          {student.notes && (
+            <div className="mb-6">
+              <h4 className="text-xl font-bold text-olive-800 mb-4 pb-2 border-b border-olive-200">
+                {t.students?.forms?.notes || 'Notas'}
+              </h4>
+              <p className="text-neutral-800 whitespace-pre-wrap">{student.notes}</p>
+            </div>
+          )}
+
+          {/* Información del Sistema */}
+          <div className="mb-6">
+            <h4 className="text-xl font-bold text-olive-800 mb-4 pb-2 border-b border-olive-200">
+              Información del Sistema
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InfoField label="Fecha de Creación" value={formatDate(student.createdAt)} className="text-xs" />
+              <InfoField label="Última Actualización" value={formatDate(student.updatedAt)} className="text-xs" />
+              {student.candidateId && (
+                <InfoField label="ID del Candidato" value={student.candidateId} className="text-xs" />
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1199,8 +1467,14 @@ function StudentFormModal({
   const isEditMode = !!student;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-white border-b border-olive-100 px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-2xl font-bold text-olive-800">
             {isEditMode ? (t.students?.forms?.editTitle || 'Editar Estudiante') : (t.students?.forms?.addTitle || 'Agregar Estudiante')}
@@ -1626,6 +1900,9 @@ function PaymentsModal({ student, onClose, t }) {
     notes: '',
     status: PAYMENT_STATUSES.PAID,
   });
+  const [receiptFile, setReceiptFile] = useState(null);
+  const [receiptPreview, setReceiptPreview] = useState(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   const getStudentDisplayName = (student) => {
     const first = student.firstName?.trim() || '';
@@ -1657,11 +1934,94 @@ function PaymentsModal({ student, onClose, t }) {
     fetchPayments();
   }, [student.id]);
 
+  const handleReceiptChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        alert('El comprobante debe ser menor a 10MB');
+        return;
+      }
+      setReceiptFile(file);
+      // Preview para imágenes
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setReceiptPreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setReceiptPreview(null);
+      }
+    }
+  };
+
+  const removeReceipt = () => {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+  };
+
+  const uploadReceipt = async () => {
+    if (!receiptFile) return null;
+
+    if (!auth.currentUser) {
+      alert('Debes estar autenticado para subir comprobantes');
+      return null;
+    }
+
+    try {
+      setUploadingReceipt(true);
+      const timestamp = Date.now();
+      const fileExtension = receiptFile.name.split('.').pop();
+      const fileName = `payment-receipts/${student.id}/${timestamp}.${fileExtension}`;
+      const storageRef = ref(storage, fileName);
+      
+      await uploadBytes(storageRef, receiptFile);
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      return { receiptURL: downloadURL, receiptPath: fileName };
+    } catch (error) {
+      console.error('Error uploading receipt:', error);
+      let errorMessage = 'Error al subir el comprobante';
+      
+      // Provide more specific error messages
+      if (error.code === 'storage/unauthorized') {
+        errorMessage = 'No tienes permisos para subir archivos. Contacta al administrador.';
+      } else if (error.code === 'storage/canceled') {
+        errorMessage = 'La subida fue cancelada.';
+      } else if (error.code === 'storage/unknown') {
+        errorMessage = 'Error desconocido al subir el archivo. Verifica tu conexión.';
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      alert(errorMessage);
+      return null;
+    } finally {
+      setUploadingReceipt(false);
+    }
+  };
+
   const handleAddPayment = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
-      await addPayment(student.id, paymentForm);
+      
+      // Upload receipt if there's a new file
+      let receiptData = null;
+      if (receiptFile) {
+        receiptData = await uploadReceipt();
+        if (!receiptData) {
+          setLoading(false);
+          return; // Stop if upload failed
+        }
+      }
+      
+      const paymentData = {
+        ...paymentForm,
+        ...(receiptData || {}),
+      };
+      
+      await addPayment(student.id, paymentData);
       setShowAddPaymentForm(false);
       setPaymentForm({
         type: PAYMENT_TYPES.MONTHLY,
@@ -1672,6 +2032,8 @@ function PaymentsModal({ student, onClose, t }) {
         notes: '',
         status: PAYMENT_STATUSES.PAID,
       });
+      setReceiptFile(null);
+      setReceiptPreview(null);
       await fetchPayments();
     } catch (error) {
       console.error('Error adding payment:', error);
@@ -1685,7 +2047,31 @@ function PaymentsModal({ student, onClose, t }) {
     e.preventDefault();
     try {
       setLoading(true);
-      await updatePayment(student.id, editingPayment.id, paymentForm);
+      
+      // Upload receipt if there's a new file
+      let receiptData = {};
+      if (receiptFile) {
+        // New file uploaded
+        const uploaded = await uploadReceipt();
+        if (!uploaded) {
+          setLoading(false);
+          return; // Stop if upload failed
+        }
+        receiptData = uploaded;
+      } else if (editingPayment.receiptURL) {
+        // Keep existing receipt if no new file
+        receiptData = {
+          receiptURL: editingPayment.receiptURL,
+          receiptPath: editingPayment.receiptPath,
+        };
+      }
+      
+      const paymentData = {
+        ...paymentForm,
+        ...receiptData,
+      };
+      
+      await updatePayment(student.id, editingPayment.id, paymentData);
       setEditingPayment(null);
       setShowAddPaymentForm(false);
       setPaymentForm({
@@ -1697,6 +2083,8 @@ function PaymentsModal({ student, onClose, t }) {
         notes: '',
         status: PAYMENT_STATUSES.PAID,
       });
+      setReceiptFile(null);
+      setReceiptPreview(null);
       await fetchPayments();
     } catch (error) {
       console.error('Error updating payment:', error);
@@ -1733,6 +2121,14 @@ function PaymentsModal({ student, onClose, t }) {
       notes: payment.notes || '',
       status: payment.status || PAYMENT_STATUSES.PAID,
     });
+    // Set receipt preview if exists
+    if (payment.receiptURL) {
+      setReceiptPreview(payment.receiptURL);
+      setReceiptFile(null); // No file selected, just showing existing
+    } else {
+      setReceiptPreview(null);
+      setReceiptFile(null);
+    }
   };
 
   const handleCancelForm = () => {
@@ -1747,14 +2143,44 @@ function PaymentsModal({ student, onClose, t }) {
       notes: '',
       status: PAYMENT_STATUSES.PAID,
     });
+    setReceiptFile(null);
+    setReceiptPreview(null);
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
     try {
-      return new Date(dateString).toLocaleDateString();
+      // Use the same format as the table for consistency
+      return formatDateToDDMMYYYY(dateString) || dateString;
     } catch {
       return dateString;
+    }
+  };
+  
+  // Helper function for date formatting (dd/mm/yyyy) - handles timezone issues
+  const formatDateToDDMMYYYY = (dateString) => {
+    if (!dateString) return '';
+    try {
+      // Handle ISO date strings (YYYY-MM-DD) without timezone issues
+      let date;
+      if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        // If it's YYYY-MM-DD format, parse it as local date to avoid timezone issues
+        const [year, month, day] = dateString.split('-').map(Number);
+        date = new Date(year, month - 1, day);
+      } else if (typeof dateString === 'string' && dateString.includes('T')) {
+        // If it's an ISO string with time, parse it carefully
+        date = new Date(dateString);
+      } else {
+        date = new Date(dateString);
+      }
+      
+      if (isNaN(date.getTime())) return '';
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return '';
     }
   };
 
@@ -1787,8 +2213,14 @@ function PaymentsModal({ student, onClose, t }) {
   }));
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-white border-b border-olive-100 px-6 py-4 flex items-center justify-between z-10">
           <div>
             <h2 className="text-2xl font-bold text-olive-800">
@@ -1974,6 +2406,79 @@ function PaymentsModal({ student, onClose, t }) {
                   />
                 </div>
 
+                {/* Receipt Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    {t.students?.payments?.receipt || 'Comprobante de Pago'}
+                  </label>
+                  <div className="space-y-3">
+                    {receiptPreview && (
+                      <div className="relative">
+                        {receiptPreview.startsWith('data:image') || receiptPreview.startsWith('http') ? (
+                          <div className="border border-olive-200 rounded-lg p-4 bg-olive-50">
+                            <img 
+                              src={receiptPreview} 
+                              alt="Vista previa del comprobante" 
+                              className="max-w-full h-auto max-h-48 rounded-lg"
+                            />
+                            <button
+                              type="button"
+                              onClick={removeReceipt}
+                              className="mt-2 text-sm text-red-600 hover:text-red-800"
+                            >
+                              {t.students?.payments?.removeReceipt || 'Eliminar comprobante'}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="border border-olive-200 rounded-lg p-4 bg-olive-50">
+                            <div className="flex items-center gap-2">
+                              <svg className="w-6 h-6 text-olive-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                              <a 
+                                href={receiptPreview} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-olive-700 hover:text-olive-800 underline"
+                              >
+                                {t.students?.payments?.viewReceipt || 'Ver comprobante'}
+                              </a>
+                              <button
+                                type="button"
+                                onClick={removeReceipt}
+                                className="ml-auto text-sm text-red-600 hover:text-red-800"
+                              >
+                                {t.students?.payments?.removeReceipt || 'Eliminar'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div>
+                      <input
+                        type="file"
+                        id="receipt-upload"
+                        accept="image/*,.pdf"
+                        onChange={handleReceiptChange}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="receipt-upload"
+                        className="inline-block px-4 py-2 bg-olive-600 text-white rounded-lg hover:bg-olive-700 cursor-pointer transition-colors"
+                      >
+                        {receiptPreview 
+                          ? (t.students?.payments?.changeReceipt || 'Cambiar Comprobante')
+                          : (t.students?.payments?.uploadReceipt || 'Subir Comprobante')
+                        }
+                      </label>
+                      <p className="text-xs text-neutral-500 mt-1">
+                        {t.students?.payments?.receiptHelp || 'Formatos permitidos: Imágenes (JPG, PNG) o PDF. Tamaño máximo: 10MB'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex justify-end gap-4 pt-4">
                   <button
                     type="button"
@@ -1984,10 +2489,13 @@ function PaymentsModal({ student, onClose, t }) {
                   </button>
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || uploadingReceipt}
                     className="px-6 py-2 bg-olive-600 text-white rounded-lg hover:bg-olive-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {loading ? (t.common?.loading || 'Guardando...') : 'Guardar'}
+                    {loading || uploadingReceipt 
+                      ? (t.common?.loading || 'Guardando...') 
+                      : 'Guardar'
+                    }
                   </button>
                 </div>
               </form>
@@ -2027,6 +2535,9 @@ function PaymentsModal({ student, onClose, t }) {
                         {t.students?.payments?.receiptNumber || 'Recibo'}
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-olive-800">
+                        {t.students?.payments?.receipt || 'Comprobante'}
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-olive-800">
                         {t.students?.payments?.paymentStatus || 'Estado'}
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-olive-800">
@@ -2049,6 +2560,25 @@ function PaymentsModal({ student, onClose, t }) {
                         </td>
                         <td className="px-4 py-3 text-neutral-700">
                           {payment.receiptNumber || '-'}
+                        </td>
+                        <td className="px-4 py-3">
+                          {payment.receiptURL ? (
+                            <a
+                              href={payment.receiptURL}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-olive-600 hover:text-olive-800 underline text-sm"
+                              title={t.students?.payments?.viewReceipt || 'Ver comprobante'}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              {t.students?.payments?.viewReceipt || 'Ver'}
+                            </a>
+                          ) : (
+                            <span className="text-neutral-400 text-sm">-</span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${

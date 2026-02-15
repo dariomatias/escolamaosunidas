@@ -91,6 +91,24 @@ export default function AdminDashboard() {
         : ['Student registration', 'Payment management', 'Academic history'],
     },
     {
+      id: 'finance',
+      title: locale === 'es' ? 'Módulo de Finanzas' : locale === 'pt' ? 'Módulo de Finanças' : 'Finance Module',
+      description: locale === 'es'
+        ? 'Visualiza recaudación, pendientes y estado de pagos'
+        : locale === 'pt'
+        ? 'Visualize arrecadação, pendências e status de pagamentos'
+        : 'View collections, pending balances, and payment status',
+      icon: '💳',
+      path: '/admin/finance',
+      color: 'from-amber-500 to-orange-500',
+      hoverColor: 'hover:from-amber-600 hover:to-orange-600',
+      features: locale === 'es'
+        ? ['Total recaudado', 'Pendientes por cobrar', 'Gráficos de estado']
+        : locale === 'pt'
+        ? ['Total arrecadado', 'Pendências a cobrar', 'Gráficos de status']
+        : ['Total collected', 'Pending balances', 'Status charts'],
+    },
+    {
       id: 'sponsors',
       title: locale === 'es' ? 'Módulo de Patrocinadores' : locale === 'pt' ? 'Módulo de Patrocinadores' : 'Sponsor Module',
       description: locale === 'es'

@@ -142,10 +142,10 @@ exports.sendSponsorshipEmail = onRequest(
     }
 
     try {
-      const { firstName, lastName, email } = req.body;
+      const { firstName, lastName, email, phone } = req.body;
 
       // Validar campos requeridos
-      if (!firstName || !lastName || !email) {
+      if (!firstName || !lastName || !email || !phone) {
         res.status(400).json({ error: 'Missing required fields' });
         return;
       }
@@ -170,6 +170,7 @@ Nueva solicitud de apadrinamiento desde el sitio web:
 Nombre: ${firstName}
 Apellido: ${lastName}
 Email: ${email}
+Teléfono: ${phone}
 
 ---
 Este mensaje fue enviado desde el formulario de apadrinamiento de escolamaosunidas.com
@@ -181,6 +182,7 @@ Este mensaje fue enviado desde el formulario de apadrinamiento de escolamaosunid
               <p><strong>Nombre:</strong> ${firstName}</p>
               <p><strong>Apellido:</strong> ${lastName}</p>
               <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+              <p><strong>Teléfono:</strong> ${phone}</p>
             </div>
             <p style="color: #718096; font-size: 12px; margin-top: 20px;">
               Este mensaje fue enviado desde el formulario de apadrinamiento de escolamaosunidas.com

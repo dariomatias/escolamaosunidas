@@ -411,3 +411,21 @@ export async function createOrUpdateStudentFromCandidate(candidateData, sponsorD
   }
 }
 
+/**
+ * Update a student
+ * @param {string} studentId - The student ID
+ * @param {Object} studentData - Updated student data
+ * @returns {Promise<void>}
+ */
+export async function updateStudent(studentId, studentData) {
+  try {
+    const studentRef = doc(db, 'students', studentId);
+    await updateDoc(studentRef, {
+      ...studentData,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Error updating student:', error);
+    throw error;
+  }
+}

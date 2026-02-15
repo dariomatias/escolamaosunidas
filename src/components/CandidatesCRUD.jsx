@@ -7,7 +7,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import JSZip from 'jszip';
 import { searchSponsors, createSponsor, getSponsorById } from '../services/sponsors-api';
-import { createOrUpdateStudentFromCandidate, updateStudentStatusByCandidateId, createStudentFromCandidateData } from '../services/students-api';
+import { createOrUpdateStudentFromCandidate, updateStudentStatusByCandidateId, createStudentFromCandidateData, getStudentById } from '../services/students-api';
 import AdminNavbar from './AdminNavbar';
 import {
   ADMIN_TRANSLATIONS,
@@ -52,8 +52,7 @@ export default function CandidatesCRUD() {
   const [filterLevel, setFilterLevel] = useState('');
   const [filterPeriod, setFilterPeriod] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [recordsPerPage, setRecordsPerPage] = useState(25);
+  const [visibleItems, setVisibleItems] = useState(50); // Number of items to render initially
   const navigate = useNavigate();
   const t = ADMIN_TRANSLATIONS[locale] || ADMIN_TRANSLATIONS[ADMIN_DEFAULT_LOCALE];
   const statusLabels = t.statuses;
@@ -71,7 +70,19 @@ export default function CandidatesCRUD() {
   const formatDateToDDMMYYYY = (dateString) => {
     if (!dateString) return '';
     try {
-      const date = new Date(dateString);
+      // Handle ISO date strings (YYYY-MM-DD) without timezone issues
+      let date;
+      if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        // If it's YYYY-MM-DD format, parse it as local date to avoid timezone issues
+        const [year, month, day] = dateString.split('-').map(Number);
+        date = new Date(year, month - 1, day);
+      } else if (typeof dateString === 'string' && dateString.includes('T')) {
+        // If it's an ISO string with time, parse it carefully
+        date = new Date(dateString);
+      } else {
+        date = new Date(dateString);
+      }
+      
       if (isNaN(date.getTime())) return '';
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -229,17 +240,31 @@ export default function CandidatesCRUD() {
     return sorted;
   }, [candidates, sortField, sortDirection, statusLabels, priorityLabels, searchText, filterLevel, filterPeriod, filterStatus]);
 
-  // Pagination logic
-  const totalRecords = sortedCandidates.length;
-  const totalPages = recordsPerPage === 'all' ? 1 : Math.ceil(totalRecords / recordsPerPage);
-  const startIndex = recordsPerPage === 'all' ? 0 : (currentPage - 1) * recordsPerPage;
-  const endIndex = recordsPerPage === 'all' ? totalRecords : startIndex + recordsPerPage;
-  const paginatedCandidates = recordsPerPage === 'all' ? sortedCandidates : sortedCandidates.slice(startIndex, endIndex);
+  // Virtual scrolling - render items as you scroll
+  const displayedCandidates = useMemo(() => {
+    return sortedCandidates.slice(0, visibleItems);
+  }, [sortedCandidates, visibleItems]);
 
-  // Reset to page 1 when filters change
+  // Reset visible items when filters change
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchText, filterLevel, filterPeriod, filterStatus, recordsPerPage]);
+    setVisibleItems(50);
+  }, [searchText, filterLevel, filterPeriod, filterStatus]);
+
+  // Infinite scroll handler - using Intersection Observer for better performance
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollBottom = window.innerHeight + window.scrollY;
+      const documentHeight = document.documentElement.scrollHeight;
+      
+      // Load more when within 500px of bottom
+      if (documentHeight - scrollBottom < 500 && visibleItems < sortedCandidates.length) {
+        setVisibleItems(prev => Math.min(prev + 50, sortedCandidates.length));
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [visibleItems, sortedCandidates.length]);
 
   useEffect(() => {
     fetchCandidates();
@@ -311,6 +336,42 @@ export default function CandidatesCRUD() {
         fullName: computedFullName,
         updatedAt: new Date().toISOString(),
       });
+      
+      // Sync candidate data to associated student (if exists)
+      const studentId = currentCandidate?.studentId;
+      if (studentId) {
+        try {
+          const existingStudent = await getStudentById(studentId);
+          
+          if (existingStudent) {
+            // Map candidate fields to student fields
+            const studentUpdateData = {
+              firstName: firstName || '',
+              lastName: lastName || '',
+              fullName: computedFullName,
+              documentId: updateData.documentId !== undefined ? updateData.documentId : existingStudent.documentId,
+              gender: updateData.gender !== undefined ? updateData.gender : existingStudent.gender,
+              birthDate: updateData.birthDate !== undefined ? updateData.birthDate : existingStudent.birthDate,
+              currentGrade: updateData.level !== undefined ? updateData.level : existingStudent.currentGrade,
+              academicYear: updateData.period !== undefined ? updateData.period : existingStudent.academicYear,
+              city: updateData.city !== undefined ? updateData.city : existingStudent.city,
+              province: updateData.province !== undefined ? updateData.province : existingStudent.province,
+              country: updateData.country !== undefined ? updateData.country : existingStudent.country,
+              notes: updateData.notes !== undefined ? updateData.notes : existingStudent.notes,
+              photoURL: updateData.photoURL !== undefined ? updateData.photoURL : existingStudent.photoURL,
+              photoPath: updateData.photoPath !== undefined ? updateData.photoPath : existingStudent.photoPath,
+              updatedAt: new Date().toISOString(),
+            };
+            
+            // Use dynamic import to avoid build issues
+            const { updateStudent: updateStudentFn } = await import('../services/students-api');
+            await updateStudentFn(studentId, studentUpdateData);
+          }
+        } catch (studentError) {
+          console.error('Error syncing candidate to student:', studentError);
+          // Don't block the candidate update if student sync fails
+        }
+      }
       
       // If candidate status changed to active (from pending or another status), create/update student
       if ((isStatusChangingFromPendingToActive || isStatusChangingToActive) && currentCandidate) {
@@ -1228,33 +1289,62 @@ export default function CandidatesCRUD() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-olive-100">
-                {paginatedCandidates.map((candidate) => (
-                  <tr key={candidate.id} className="hover:bg-olive-50/30 transition-colors">
+                {displayedCandidates.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="px-6 py-12 text-center text-neutral-500">
+                      {t.table?.noResults || 'No hay candidatos que coincidan con los filtros'}
+                    </td>
+                  </tr>
+                ) : (
+                  displayedCandidates.map((candidate) => (
+                    <tr 
+                      key={candidate.id} 
+                      onClick={() => setViewingCandidate(candidate)}
+                      className="hover:bg-olive-100/50 cursor-pointer transition-colors"
+                    >
                     <td className="px-6 py-4">
                       <div 
                         className="relative flex-shrink-0 overflow-hidden rounded-lg border-2 border-olive-200 bg-olive-50 flex items-center justify-center"
                         style={{ width: '48px', height: '48px', minWidth: '48px', minHeight: '48px' }}
                       >
-                        {candidate.gender === 'femenino' || candidate.gender === 'female' ? (
-                          <svg className="w-8 h-8 text-pink-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-                          </svg>
-                        ) : candidate.gender === 'masculino' || candidate.gender === 'male' ? (
-                          <svg className="w-8 h-8 text-blue-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-                          </svg>
-                        ) : (
-                          <svg className="w-8 h-8 text-olive-600" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                          </svg>
-                        )}
+                        {candidate.photoURL ? (
+                          <img 
+                            src={candidate.photoURL} 
+                            alt={getCandidateDisplayName(candidate)}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Si la imagen falla al cargar, ocultarla y mostrar el icono
+                              e.target.style.display = 'none';
+                              const parent = e.target.parentElement;
+                              const icon = parent.querySelector('.fallback-icon');
+                              if (icon) icon.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div 
+                          className={`fallback-icon ${candidate.photoURL ? 'hidden' : 'flex'} items-center justify-center w-full h-full`}
+                        >
+                          {candidate.gender === 'femenino' || candidate.gender === 'female' ? (
+                            <svg className="w-8 h-8 text-pink-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                            </svg>
+                          ) : candidate.gender === 'masculino' || candidate.gender === 'male' ? (
+                            <svg className="w-8 h-8 text-blue-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                            </svg>
+                          ) : (
+                            <svg className="w-8 h-8 text-olive-600" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                            </svg>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-medium text-neutral-900">{getCandidateDisplayName(candidate)}</div>
                       {candidate.birthDate && (
                         <div className="text-sm text-neutral-500">
-                          {t.table.birthDatePrefix} {new Date(candidate.birthDate).toLocaleDateString()}
+                          {t.table.birthDatePrefix} {formatDateToDDMMYYYY(candidate.birthDate)}
                         </div>
                       )}
                     </td>
@@ -1283,27 +1373,29 @@ export default function CandidatesCRUD() {
                     <td className="px-6 py-4">
                       <div className="flex gap-2 flex-wrap">
                         <button
-                          onClick={() => setViewingCandidate(candidate)}
-                          className="px-3 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-                          title={t.table.viewDetails}
-                        >
-                          👁️ {t.table.viewDetails}
-                        </button>
-                        <button
-                          onClick={() => handleEdit(candidate)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(candidate);
+                          }}
                           className="px-3 py-1 text-sm bg-olive-600 text-white rounded hover:bg-olive-700 transition-colors"
                         >
                           {t.table.edit}
                         </button>
                         <button
-                          onClick={() => handleExportPDF(candidate)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleExportPDF(candidate);
+                          }}
                           className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-1"
                           title="Exportar a PDF"
                         >
                           📄 {t.table.exportPDF}
                         </button>
                         <button
-                          onClick={() => handleDelete(candidate.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(candidate.id);
+                          }}
                           className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                         >
                           {t.table.delete}
@@ -1311,59 +1403,20 @@ export default function CandidatesCRUD() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
           
-          {/* Pagination and Count */}
-          <div className="px-6 py-4 bg-white border-t border-olive-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* Results Count */}
+          <div className="px-6 py-4 bg-white border-t border-olive-100">
             <div className="text-sm text-neutral-600">
-              {t.filters?.showing || 'Mostrando'} {totalRecords > 0 ? startIndex + 1 : 0} - {Math.min(endIndex, totalRecords)} {t.filters?.of || 'de'} {totalRecords} {t.filters?.results || 'resultados'}
-            </div>
-            
-            <div className="flex items-center gap-4">
-              {/* Records per page selector */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-neutral-600">{t.table?.recordsPerPage || 'Registros por página'}:</label>
-                <select
-                  value={recordsPerPage}
-                  onChange={(e) => {
-                    setRecordsPerPage(e.target.value === 'all' ? 'all' : parseInt(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="px-3 py-1.5 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white text-sm"
-                >
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                  <option value="all">{t.table?.all || 'TODOS'}</option>
-                </select>
-              </div>
-              
-              {/* Pagination controls */}
-              {recordsPerPage !== 'all' && totalPages > 1 && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1.5 text-sm border border-olive-200 rounded-lg hover:bg-olive-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {t.common?.previous || 'Anterior'}
-                  </button>
-                  
-                  <span className="text-sm text-neutral-600">
-                    {t.common?.page || 'Página'} {currentPage} {t.common?.of || 'de'} {totalPages}
-                  </span>
-                  
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 text-sm border border-olive-200 rounded-lg hover:bg-olive-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {t.common?.next || 'Siguiente'}
-                  </button>
-                </div>
+              {t.filters?.showing || 'Mostrando'} {displayedCandidates.length} {t.filters?.of || 'de'} {sortedCandidates.length} {t.filters?.results || 'resultados'}
+              {visibleItems < sortedCandidates.length && (
+                <span className="ml-2 text-olive-600">
+                  ({t.table?.scrollForMore || 'Desplázate para ver más'})
+                </span>
               )}
             </div>
           </div>
@@ -1563,8 +1616,14 @@ function SponsorInfoModal({ candidate, onClose, onSave, t }) {
     : candidate.fullName || 'Candidato';
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-white border-b border-olive-100 px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-olive-800">{t.sponsor.title}</h2>
@@ -1930,7 +1989,24 @@ function CandidateDetailModal({ candidate, onClose, onEdit, onExportPDF, t, stat
   const formatDate = (dateString) => {
     if (!dateString) return '(No especificado)';
     try {
-      return new Date(dateString).toLocaleDateString('es-ES');
+      // Handle ISO date strings (YYYY-MM-DD) without timezone issues
+      let date;
+      if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        // If it's YYYY-MM-DD format, parse it as local date to avoid timezone issues
+        const [year, month, day] = dateString.split('-').map(Number);
+        date = new Date(year, month - 1, day);
+      } else if (typeof dateString === 'string' && dateString.includes('T')) {
+        // If it's an ISO string with time, parse it carefully
+        date = new Date(dateString);
+      } else {
+        date = new Date(dateString);
+      }
+      
+      if (isNaN(date.getTime())) return dateString;
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
     } catch {
       return dateString;
     }
@@ -1944,8 +2020,14 @@ function CandidateDetailModal({ candidate, onClose, onEdit, onExportPDF, t, stat
   );
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-white border-b border-olive-100 px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-2xl font-bold text-olive-800">Detalle del Candidato</h2>
           <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 text-2xl" aria-label="Close">×</button>
@@ -2159,7 +2241,19 @@ function CandidateEditModal({ candidate, onClose, onSave, t, statusOptions = STA
   const formatDateToDDMMYYYY = (dateString) => {
     if (!dateString) return '';
     try {
-      const date = new Date(dateString);
+      // Handle ISO date strings (YYYY-MM-DD) without timezone issues
+      let date;
+      if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        // If it's YYYY-MM-DD format, parse it as local date to avoid timezone issues
+        const [year, month, day] = dateString.split('-').map(Number);
+        date = new Date(year, month - 1, day);
+      } else if (typeof dateString === 'string' && dateString.includes('T')) {
+        // If it's an ISO string with time, parse it carefully
+        date = new Date(dateString);
+      } else {
+        date = new Date(dateString);
+      }
+      
       if (isNaN(date.getTime())) return '';
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -2342,8 +2436,14 @@ function CandidateEditModal({ candidate, onClose, onSave, t, statusOptions = STA
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-white border-b border-olive-100 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-olive-800">{t.modals.editTitle}</h2>
           <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600" aria-label="Close">✕</button>
@@ -2778,7 +2878,19 @@ function CandidateAddModal({ onClose, onSave, t, statusOptions = STATUS_OPTIONS,
   const formatDateToDDMMYYYY = (dateString) => {
     if (!dateString) return '';
     try {
-      const date = new Date(dateString);
+      // Handle ISO date strings (YYYY-MM-DD) without timezone issues
+      let date;
+      if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        // If it's YYYY-MM-DD format, parse it as local date to avoid timezone issues
+        const [year, month, day] = dateString.split('-').map(Number);
+        date = new Date(year, month - 1, day);
+      } else if (typeof dateString === 'string' && dateString.includes('T')) {
+        // If it's an ISO string with time, parse it carefully
+        date = new Date(dateString);
+      } else {
+        date = new Date(dateString);
+      }
+      
       if (isNaN(date.getTime())) return '';
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -2953,8 +3065,14 @@ function CandidateAddModal({ onClose, onSave, t, statusOptions = STATUS_OPTIONS,
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-white border-b border-olive-100 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-olive-800">{t.modals.addTitle}</h2>
           <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600" aria-label="Close">✕</button>

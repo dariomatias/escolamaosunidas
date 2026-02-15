@@ -26,13 +26,13 @@ export default function SponsorsCRUD() {
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [editingSponsor, setEditingSponsor] = useState(null);
+  const [viewingSponsor, setViewingSponsor] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [locale, setLocale] = useState(() => getInitialAdminLocale());
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
   const [searchText, setSearchText] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [recordsPerPage, setRecordsPerPage] = useState(25);
+  const [visibleItems, setVisibleItems] = useState(50); // Number of items to render initially
 
   const t = ADMIN_TRANSLATIONS[locale] || ADMIN_TRANSLATIONS[ADMIN_DEFAULT_LOCALE];
 
@@ -164,20 +164,31 @@ export default function SponsorsCRUD() {
     return sorted;
   }, [sponsors, sortField, sortDirection, searchText]);
 
-  // Pagination
-  const totalRecords = sortedSponsors.length;
-  const totalPages = recordsPerPage === 'all' ? 1 : Math.ceil(totalRecords / recordsPerPage);
-  const startIndex = recordsPerPage === 'all' ? 0 : (currentPage - 1) * recordsPerPage;
-  const endIndex = recordsPerPage === 'all' ? totalRecords : startIndex + recordsPerPage;
-  const paginatedSponsors = useMemo(() => {
-    if (recordsPerPage === 'all') return sortedSponsors;
-    return sortedSponsors.slice(startIndex, endIndex);
-  }, [sortedSponsors, startIndex, endIndex, recordsPerPage]);
+  // Virtual scrolling - render items as you scroll
+  const displayedSponsors = useMemo(() => {
+    return sortedSponsors.slice(0, visibleItems);
+  }, [sortedSponsors, visibleItems]);
 
-  // Reset to page 1 when filters change
+  // Reset visible items when filters change
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchText, recordsPerPage]);
+    setVisibleItems(50);
+  }, [searchText]);
+
+  // Infinite scroll handler - using window scroll for page-level scrolling
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollBottom = window.innerHeight + window.scrollY;
+      const documentHeight = document.documentElement.scrollHeight;
+      
+      // Load more when within 500px of bottom
+      if (documentHeight - scrollBottom < 500 && visibleItems < sortedSponsors.length) {
+        setVisibleItems(prev => Math.min(prev + 50, sortedSponsors.length));
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [visibleItems, sortedSponsors.length]);
 
   const SortIcon = ({ field }) => {
     if (sortField !== field) return null;
@@ -246,7 +257,6 @@ export default function SponsorsCRUD() {
                 value={searchText}
                 onChange={(e) => {
                   setSearchText(e.target.value);
-                  setCurrentPage(1);
                 }}
                 className="w-full md:w-96 px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900"
               />
@@ -334,7 +344,7 @@ export default function SponsorsCRUD() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-olive-100">
-                {paginatedSponsors.length === 0 ? (
+                {displayedSponsors.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center text-neutral-500">
                       {searchText 
@@ -343,8 +353,12 @@ export default function SponsorsCRUD() {
                     </td>
                   </tr>
                 ) : (
-                  paginatedSponsors.map((sponsor) => (
-                    <tr key={sponsor.id} className="hover:bg-olive-50 transition-colors">
+                  displayedSponsors.map((sponsor) => (
+                    <tr 
+                      key={sponsor.id} 
+                      onClick={() => setViewingSponsor(sponsor)}
+                      className="hover:bg-olive-100/50 cursor-pointer transition-colors"
+                    >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-neutral-900">
                           {getSponsorDisplayName(sponsor)}
@@ -365,14 +379,20 @@ export default function SponsorsCRUD() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end gap-2">
                           <button
-                            onClick={() => setEditingSponsor(sponsor)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingSponsor(sponsor);
+                            }}
                             className="px-3 py-1 text-sm bg-olive-600 text-white rounded hover:bg-olive-700 transition-colors"
                             title={t.sponsors?.table?.edit || 'Editar'}
                           >
                             {t.sponsors?.table?.edit || 'Editar'}
                           </button>
                           <button
-                            onClick={() => handleDelete(sponsor.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(sponsor.id);
+                            }}
                             disabled={isLoading}
                             className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title={t.sponsors?.table?.delete || 'Eliminar'}
@@ -388,58 +408,31 @@ export default function SponsorsCRUD() {
             </table>
           </div>
 
-          {/* Pagination */}
-          {totalPages > 0 && (
-            <div className="bg-olive-50 px-6 py-4 border-t border-olive-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-neutral-700">
-                {t.sponsors?.pagination?.showing || 'Mostrando'} {totalRecords > 0 ? (recordsPerPage === 'all' ? 1 : startIndex + 1) : 0} {t.sponsors?.pagination?.to || 'a'} {recordsPerPage === 'all' ? totalRecords : Math.min(endIndex, totalRecords)} {t.sponsors?.pagination?.of || 'de'} {totalRecords}
-              </div>
-              
-              <div className="flex items-center gap-4">
-                {/* Records per page selector */}
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-neutral-600">{t.sponsors?.pagination?.recordsPerPage || 'Registros por página'}:</label>
-                  <select
-                    value={recordsPerPage}
-                    onChange={(e) => {
-                      setRecordsPerPage(e.target.value === 'all' ? 'all' : parseInt(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="px-3 py-1.5 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white text-sm"
-                  >
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                    <option value="all">{t.sponsors?.pagination?.all || 'TODOS'}</option>
-                  </select>
-                </div>
-                
-                {/* Pagination controls */}
-                {recordsPerPage !== 'all' && totalPages > 1 && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      className="px-4 py-2 border border-olive-200 rounded-lg hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {t.sponsors?.pagination?.previous || 'Anterior'}
-                    </button>
-                    <span className="px-4 py-2 text-neutral-700">
-                      {t.sponsors?.pagination?.page || 'Página'} {currentPage} {t.sponsors?.pagination?.of || 'de'} {totalPages}
-                    </span>
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                      className="px-4 py-2 border border-olive-200 rounded-lg hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {t.sponsors?.pagination?.next || 'Siguiente'}
-                    </button>
-                  </div>
-                )}
-              </div>
+          {/* Results Count */}
+          <div className="bg-olive-50 px-6 py-4 border-t border-olive-100">
+            <div className="text-sm text-neutral-700">
+              {t.sponsors?.pagination?.showing || 'Mostrando'} {displayedSponsors.length} {t.sponsors?.pagination?.of || 'de'} {sortedSponsors.length} {t.sponsors?.pagination?.results || 'resultados'}
+              {visibleItems < sortedSponsors.length && (
+                <span className="ml-2 text-olive-600">
+                  ({t.sponsors?.pagination?.scrollForMore || 'Desplázate para ver más'})
+                </span>
+              )}
             </div>
-          )}
+          </div>
         </div>
+
+        {/* View Details Modal */}
+        {viewingSponsor && (
+          <SponsorDetailModal
+            sponsor={viewingSponsor}
+            onClose={() => setViewingSponsor(null)}
+            onEdit={() => {
+              setViewingSponsor(null);
+              setEditingSponsor(viewingSponsor);
+            }}
+            t={t}
+          />
+        )}
 
         {/* Add/Edit Modal */}
         {(showAddModal || editingSponsor) && (
@@ -469,6 +462,125 @@ export default function SponsorsCRUD() {
             t={t}
           />
         )}
+      </div>
+    </div>
+  );
+}
+
+// Sponsor Detail Modal Component
+function SponsorDetailModal({ sponsor, onClose, onEdit, t }) {
+  const getSponsorDisplayName = (sponsor) => {
+    const first = sponsor.firstName?.trim() || '';
+    const last = sponsor.lastName?.trim() || '';
+    const combined = `${first} ${last}`.replace(/\s+/g, ' ').trim();
+    return combined || 'Sin nombre';
+  };
+
+  const fullName = getSponsorDisplayName(sponsor);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '(No especificado)';
+    try {
+      // Handle ISO date strings (YYYY-MM-DD) without timezone issues
+      let date;
+      if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        const [year, month, day] = dateString.split('-').map(Number);
+        date = new Date(year, month - 1, day);
+      } else if (typeof dateString === 'string' && dateString.includes('T')) {
+        date = new Date(dateString);
+      } else {
+        date = new Date(dateString);
+      }
+      
+      if (isNaN(date.getTime())) return dateString;
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return dateString;
+    }
+  };
+
+  const InfoField = ({ label, value, className = '' }) => (
+    <div className={`py-3 border-b border-olive-100 ${className}`}>
+      <div className="text-sm font-semibold text-olive-700 mb-1">{label}</div>
+      <div className="text-base text-neutral-800">{value || '(No especificado)'}</div>
+    </div>
+  );
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 bg-white border-b border-olive-100 px-6 py-4 flex items-center justify-between z-10">
+          <h2 className="text-2xl font-bold text-olive-800">Detalle del Patrocinador</h2>
+          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 text-2xl" aria-label="Close">×</button>
+        </div>
+        
+        <div className="p-6">
+          {/* Header con nombre */}
+          <div className="flex items-start gap-6 mb-8 pb-6 border-b-2 border-olive-200">
+            <div className="flex-shrink-0">
+              <div className="w-32 h-32 rounded-lg bg-olive-100 border-4 border-olive-200 flex items-center justify-center text-olive-600 font-bold text-4xl shadow-lg">
+                {fullName.charAt(0).toUpperCase()}
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-3xl font-bold text-olive-800 mb-2">{fullName}</h3>
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={onEdit}
+                  className="px-4 py-2 bg-olive-600 text-white rounded-lg hover:bg-olive-700 transition-colors font-semibold"
+                >
+                  ✏️ {t.sponsors?.table?.edit || 'Editar'}
+                </button>
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-100 text-neutral-700 transition-colors font-semibold"
+                >
+                  {t.sponsors?.buttons?.cancel || 'Cerrar'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Información Básica */}
+          <div className="mb-6">
+            <h4 className="text-xl font-bold text-olive-800 mb-4 pb-2 border-b border-olive-200">
+              {t.sponsors?.forms?.basicInfo || 'Información Básica'}
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InfoField label={t.sponsors?.forms?.firstName || 'Nombre'} value={sponsor.firstName} />
+              <InfoField label={t.sponsors?.forms?.lastName || 'Apellido'} value={sponsor.lastName} />
+              <InfoField label={t.sponsors?.forms?.email || 'Email'} value={sponsor.email || '-'} />
+              <InfoField label={t.sponsors?.forms?.phone || 'Teléfono'} value={sponsor.phone || '-'} />
+              <InfoField label={t.sponsors?.forms?.address || 'Dirección'} value={sponsor.address || '-'} />
+              <InfoField label={t.sponsors?.forms?.city || 'Ciudad'} value={sponsor.city || '-'} />
+              <InfoField label={t.sponsors?.forms?.country || 'País'} value={sponsor.country || '-'} />
+            </div>
+          </div>
+
+          {/* Información del Sistema */}
+          <div className="mb-6">
+            <h4 className="text-xl font-bold text-olive-800 mb-4 pb-2 border-b border-olive-200">
+              Información del Sistema
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {sponsor.createdAt && (
+                <InfoField label="Fecha de Creación" value={formatDate(sponsor.createdAt)} className="text-xs" />
+              )}
+              {sponsor.updatedAt && (
+                <InfoField label="Última Actualización" value={formatDate(sponsor.updatedAt)} className="text-xs" />
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -515,8 +627,14 @@ function SponsorFormModal({ sponsor, onClose, onSave, t }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-white border-b border-olive-100 px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-2xl font-bold text-olive-800">
             {isEditMode 

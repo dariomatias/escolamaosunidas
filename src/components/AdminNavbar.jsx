@@ -83,6 +83,11 @@ export default function AdminNavbar({ onLocaleChange: externalLocaleChange }) {
       label: locale === 'es' ? 'Módulo Estudiantes' : locale === 'pt' ? 'Módulo Estudantes' : 'Students',
       icon: '📚',
     },
+    {
+      path: '/admin/finance',
+      label: locale === 'es' ? 'Finanzas' : locale === 'pt' ? 'Finanças' : 'Finance',
+      icon: '💳',
+    },
   ];
 
   const isActive = (path, exact = false) => {

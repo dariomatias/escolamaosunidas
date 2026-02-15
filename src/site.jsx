@@ -242,7 +242,7 @@ const COPY = {
       formEmail: "Email",
       formMsg: "Mensaje",
       formSubmit: "Enviar consulta",
-      disclaimer: "Este formulario usa un servicio externo. Te responderemos a la brevedad.",
+      disclaimer: "Este formulario usa un servicio externo. Estén atentos a una respuesta pronta de nuestra parte y revisen las casillas de correo no deseado o spam.",
     },
     footer: {
       copyright: "Desarrollado por",
@@ -488,7 +488,7 @@ const COPY = {
       formEmail: "Email",
       formMsg: "Mensagem",
       formSubmit: "Enviar",
-      disclaimer: "Este formulário usa um serviço externo. Responderemos o mais breve possível.",
+      disclaimer: "Este formulário usa um serviço externo. Fiquem atentos a uma resposta rápida de nossa parte e verifiquem as caixas de correio não desejado ou spam.",
     },
     footer: {
       copyright: "Desenvolvido por",
@@ -734,7 +734,7 @@ const COPY = {
       formEmail: "Email",
       formMsg: "Message",
       formSubmit: "Send",
-      disclaimer: "This form uses an external service. We will respond as soon as possible.",
+      disclaimer: "This form uses an external service. Please be attentive to a prompt response from us and check your spam or junk mail folders.",
     },
     footer: {
       copyright: "Developed by",
@@ -750,7 +750,7 @@ export default function EscolaMaosUnidasSite() {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
   const [formStatus, setFormStatus] = useState({ loading: false, success: false, error: '' });
   const [showSponsorshipModal, setShowSponsorshipModal] = useState(false);
-  const [sponsorshipData, setSponsorshipData] = useState({ firstName: '', lastName: '', email: '' });
+  const [sponsorshipData, setSponsorshipData] = useState({ firstName: '', lastName: '', email: '', phone: '' });
   const [sponsorshipStatus, setSponsorshipStatus] = useState({ loading: false, success: false, error: '' });
   const [admissionsData, setAdmissionsData] = useState({ 
     studentName: '', 
@@ -870,6 +870,7 @@ export default function EscolaMaosUnidasSite() {
           firstName: sponsorshipData.firstName,
           lastName: sponsorshipData.lastName,
           email: sponsorshipData.email,
+          phone: sponsorshipData.phone,
         }),
       });
 
@@ -877,7 +878,7 @@ export default function EscolaMaosUnidasSite() {
 
       if (response.ok && data.success) {
         setSponsorshipStatus({ loading: false, success: true, error: '' });
-        setSponsorshipData({ firstName: '', lastName: '', email: '' });
+        setSponsorshipData({ firstName: '', lastName: '', email: '', phone: '' });
         // Cerrar el modal después de 2 segundos (tiempo suficiente para ver el mensaje de éxito)
         setTimeout(() => {
           setShowSponsorshipModal(false);
@@ -1775,6 +1776,19 @@ export default function EscolaMaosUnidasSite() {
                     className="w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    {lang === 'es' ? 'Teléfono' : lang === 'pt' ? 'Telefone' : 'Phone'}
+                  </label>
+                  <input 
+                    type="tel"
+                    value={sponsorshipData.phone}
+                    onChange={(e) => setSponsorshipData({ ...sponsorshipData, phone: e.target.value })}
+                    required 
+                    disabled={sponsorshipStatus.loading}
+                    className="w-full rounded-lg border border-olive-200 px-4 py-2 focus:border-olive-400 focus:ring-2 focus:ring-olive-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+                  />
+                </div>
                 <div className="flex gap-3 pt-4">
                   <button 
                     type="button"
@@ -1792,6 +1806,13 @@ export default function EscolaMaosUnidasSite() {
                     {sponsorshipStatus.loading ? '⏳ ' : '✉️ '}{sponsorshipStatus.loading ? (lang === 'es' ? 'Enviando...' : lang === 'pt' ? 'Enviando...' : 'Sending...') : (lang === 'es' ? 'Enviar Solicitud' : lang === 'pt' ? 'Enviar Solicitação' : 'Send Request')}
                   </button>
                 </div>
+                <p className="text-xs text-neutral-500 mt-2">
+                  {lang === 'es' 
+                    ? 'Este formulario usa un servicio externo. Estén atentos a una respuesta pronta de nuestra parte y revisen las casillas de correo no deseado o spam.'
+                    : lang === 'pt'
+                    ? 'Este formulário usa um serviço externo. Fiquem atentos a uma resposta rápida de nossa parte e verifiquem as caixas de correio não desejado ou spam.'
+                    : 'This form uses an external service. Please be attentive to a prompt response from us and check your spam or junk mail folders.'}
+                </p>
               </form>
             </div>
           </div>
