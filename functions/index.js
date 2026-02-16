@@ -250,10 +250,8 @@ exports.sendPaymentReminder = onRequest(
         sponsorLastName,
         studentName,
         studentMatriculationNumber,
-        totalDue,
-        totalPaid,
-        paymentStatus,
-        academicYear
+        academicYear,
+        overdueMonth
       } = req.body;
 
       // Validar campos requeridos
@@ -273,31 +271,21 @@ exports.sendPaymentReminder = onRequest(
         ? `${sponsorFirstName} ${sponsorLastName}` 
         : sponsorFirstName || sponsorLastName || 'Patrocinador';
 
-      // Calcular información de pago
-      const balance = (totalDue || 0) - (totalPaid || 0);
-      const statusText = paymentStatus === 'paid' ? 'Pagado' : 
-                         paymentStatus === 'current' ? 'Al Día' : 
-                         paymentStatus === 'overdue' ? 'Atrasado' : 
-                         'Pendiente';
-
       // Configurar el email
       const msg = {
         to: sponsorEmail,
         from: 'noreply@escolamaosunidas.com',
-        subject: `Recordatorio de Pago - ${studentName} - Escola Mãos Unidas`,
+        subject: `Recordatorio de Pago - ${studentName} - ${overdueMonth || 'Mes en curso'}`,
         text: `
 Estimado/a ${sponsorName},
 
-Le recordamos el estado de pagos de su estudiante apadrinado:
+Le recordamos el pago pendiente de su estudiante apadrinado:
 
 Estudiante: ${studentName}
 ${studentMatriculationNumber ? `Número de Matrícula: ${studentMatriculationNumber}` : ''}
 ${academicYear ? `Año Académico: ${academicYear}` : ''}
 
-Estado de Pago: ${statusText}
-Total Adeudado: $${(totalDue || 0).toFixed(2)}
-Total Pagado: $${(totalPaid || 0).toFixed(2)}
-Saldo Pendiente: $${balance.toFixed(2)}
+Mes pendiente: ${overdueMonth || 'Mes en curso'}
 
 Por favor, comuníquese con nosotros para realizar el pago pendiente.
 
@@ -314,7 +302,7 @@ Equipo Escola Mãos Unidas
             
             <p>Estimado/a <strong>${sponsorName}</strong>,</p>
             
-            <p>Le recordamos el estado de pagos de su estudiante apadrinado:</p>
+            <p>Le recordamos el pago pendiente de su estudiante apadrinado:</p>
             
             <div style="background-color: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #68d391;">
               <h3 style="color: #2d3748; margin-top: 0;">Información del Estudiante</h3>
@@ -324,24 +312,12 @@ Equipo Escola Mãos Unidas
             </div>
             
             <div style="background-color: #ffffff; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #2d3748; margin-top: 0;">Estado de Pagos</h3>
+              <h3 style="color: #2d3748; margin-top: 0;">Pago Pendiente</h3>
               <table style="width: 100%; border-collapse: collapse;">
                 <tr>
-                  <td style="padding: 8px 0; color: #4a5568;"><strong>Estado:</strong></td>
-                  <td style="padding: 8px 0; color: #2d3748;">${statusText}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #4a5568;"><strong>Total Adeudado:</strong></td>
-                  <td style="padding: 8px 0; color: #2d3748;">$${(totalDue || 0).toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #4a5568;"><strong>Total Pagado:</strong></td>
-                  <td style="padding: 8px 0; color: #2d3748;">$${(totalPaid || 0).toFixed(2)}</td>
-                </tr>
-                <tr style="border-top: 2px solid #e2e8f0;">
-                  <td style="padding: 12px 0; color: #2d3748; font-weight: bold;"><strong>Saldo Pendiente:</strong></td>
-                  <td style="padding: 12px 0; color: #${balance > 0 ? 'e53e3e' : '38a169'}; font-weight: bold; font-size: 18px;">
-                    $${balance.toFixed(2)}
+                  <td style="padding: 12px 0; color: #4a5568;"><strong>Mes pendiente:</strong></td>
+                  <td style="padding: 12px 0; color: #2d3748; font-weight: bold;">
+                    ${overdueMonth || 'Mes en curso'}
                   </td>
                 </tr>
               </table>

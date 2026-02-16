@@ -832,6 +832,7 @@ export const ADMIN_TRANSLATIONS = {
       buttons: {
         addStudent: '+ Agregar Estudiante',
         addPayment: '+ Agregar Pago',
+        payments: 'Pagos',
       },
       table: {
         matriculationNumber: 'Nº Matrícula',
@@ -925,6 +926,18 @@ export const ADMIN_TRANSLATIONS = {
         monthSelect: 'Seleccionar mes',
         receiptNumber: 'Número de Recibo',
         notes: 'Notas',
+        downloadReceipt: 'Recibo',
+        receiptTitle: 'RECIBO DE PAGO',
+        receiptId: 'Nº',
+        student: 'Estudiante',
+        grade: 'Curso',
+        academicYear: 'Ciclo lectivo',
+        sponsor: 'Patrocinador',
+        receiptDetail: 'Detalle del Pago',
+        total: 'Total',
+        signature: 'Firma',
+        receiptFooter: 'Gracias por apoyar el desarrollo de nuestros estudiantes.',
+        receiptCurrency: 'Todos los pagos se expresan en dólares estadounidenses (USD).',
         paymentsHistory: 'Historial de Pagos',
         noPayments: 'No hay pagos registrados',
         balance: 'Saldo',
@@ -971,6 +984,7 @@ export const ADMIN_TRANSLATIONS = {
       confirm: {
         delete: '¿Estás seguro de eliminar este estudiante?',
         sendReminder: '¿Enviar recordatorio de pago?',
+        sendReminderForMonth: '¿Enviar recordatorio de pago del mes {{month}} a {{email}}?',
         clearSponsor: 'El estudiante será marcado como inactivo. ¿Deseas eliminar la información del patrocinador?',
       },
       success: {
@@ -1290,6 +1304,7 @@ export const ADMIN_TRANSLATIONS = {
       buttons: {
         addStudent: '+ Adicionar Estudante',
         addPayment: '+ Adicionar Pagamento',
+        payments: 'Pagamentos',
       },
       table: {
         matriculationNumber: 'Nº Matrícula',
@@ -1375,6 +1390,18 @@ export const ADMIN_TRANSLATIONS = {
         monthSelect: 'Selecionar mês',
         receiptNumber: 'Número do Recibo',
         notes: 'Observações',
+        downloadReceipt: 'Recibo',
+        receiptTitle: 'RECIBO DE PAGAMENTO',
+        receiptId: 'Nº',
+        student: 'Estudante',
+        grade: 'Turma',
+        academicYear: 'Ano letivo',
+        sponsor: 'Patrocinador',
+        receiptDetail: 'Detalhe do Pagamento',
+        total: 'Total',
+        signature: 'Assinatura',
+        receiptFooter: 'Obrigado por apoiar o desenvolvimento dos nossos estudantes.',
+        receiptCurrency: 'Todos os pagamentos são expressos em dólares americanos (USD).',
         paymentsHistory: 'Histórico de Pagamentos',
         noPayments: 'Não há pagamentos registrados',
         balance: 'Saldo',
@@ -1421,6 +1448,7 @@ export const ADMIN_TRANSLATIONS = {
       confirm: {
         delete: 'Tem certeza de que deseja excluir este estudante?',
         sendReminder: 'Enviar lembrete de pagamento?',
+        sendReminderForMonth: 'Enviar lembrete de pagamento do mês {{month}} para {{email}}?',
         clearSponsor: 'O estudante será marcado como inativo. Deseja remover as informações do patrocinador?',
       },
       success: {
@@ -1726,6 +1754,7 @@ export const ADMIN_TRANSLATIONS = {
       buttons: {
         addStudent: '+ Add Student',
         addPayment: '+ Add Payment',
+        payments: 'Payments',
       },
       table: {
         matriculationNumber: 'Matriculation #',
@@ -1819,6 +1848,18 @@ export const ADMIN_TRANSLATIONS = {
         monthSelect: 'Select month',
         receiptNumber: 'Receipt Number',
         notes: 'Notes',
+        downloadReceipt: 'Receipt',
+        receiptTitle: 'PAYMENT RECEIPT',
+        receiptId: 'No.',
+        student: 'Student',
+        grade: 'Grade',
+        academicYear: 'Academic Year',
+        sponsor: 'Sponsor',
+        receiptDetail: 'Payment Details',
+        total: 'Total',
+        signature: 'Signature',
+        receiptFooter: 'Thank you for supporting our students.',
+        receiptCurrency: 'All payments are expressed in US dollars (USD).',
         paymentsHistory: 'Payment History',
         noPayments: 'No payments registered',
         balance: 'Balance',
@@ -1865,6 +1906,7 @@ export const ADMIN_TRANSLATIONS = {
       confirm: {
         delete: 'Are you sure you want to delete this student?',
         sendReminder: 'Send payment reminder?',
+        sendReminderForMonth: 'Send payment reminder for {{month}} to {{email}}?',
         clearSponsor: 'The student will be marked as inactive. Do you want to remove the sponsor information?',
       },
       success: {

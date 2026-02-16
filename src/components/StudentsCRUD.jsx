@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, query, orderBy } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { jsPDF } from 'jspdf';
 import { db, storage, auth } from '../config/firebase';
 import AdminNavbar from './AdminNavbar';
 import { getAllStudents, generateNextMatriculationNumber } from '../services/students-api';
@@ -68,6 +69,52 @@ export default function StudentsCRUD() {
     const combined = `${first} ${last}`.replace(/\s+/g, ' ').trim();
     if (combined.length > 0) return combined;
     return student.fullName || 'Sin nombre';
+  };
+
+  const getCurrentMonthLabel = () => {
+    const monthIndex = new Date().getMonth();
+    const monthsByLocale = {
+      es: [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+      ],
+      pt: [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+      ],
+      en: [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December',
+      ],
+    };
+    const lang = locale === 'pt' ? 'pt' : locale === 'en' ? 'en' : 'es';
+    return monthsByLocale[lang][monthIndex];
+  };
+
+  const getDerivedPaymentStatus = (student) => {
+    const baseStatus = student.paymentStatus || 'pending';
+    if (baseStatus === 'paid' || baseStatus === 'current') return baseStatus;
+    const now = new Date();
+    const monthIndex = now.getMonth();
+    const dayOfMonth = now.getDate();
+    if (monthIndex === 0 || monthIndex === 1) {
+      return 'current';
+    }
+    if (baseStatus === 'pending' && dayOfMonth > 10) {
+      return 'overdue';
+    }
+    return baseStatus;
+  };
+
+  const shouldShowPaymentReminder = (student) => {
+    const today = new Date();
+    const dayOfMonth = today.getDate();
+    const monthIndex = today.getMonth();
+    if (monthIndex === 0 || monthIndex === 1) return false;
+    if (dayOfMonth <= 10) return false;
+    const derivedStatus = getDerivedPaymentStatus(student);
+    if (derivedStatus === 'paid') return false;
+    return derivedStatus === 'overdue';
   };
 
   // Helper function for date formatting (dd/mm/yyyy) - handles timezone issues
@@ -146,16 +193,22 @@ export default function StudentsCRUD() {
       return;
     }
 
-    if (!confirm(t.students?.confirm?.sendReminder || `¿Enviar recordatorio de pago a ${sponsorEmail}?`)) {
+    const reminderTemplate = t.students?.confirm?.sendReminderForMonth ||
+      '¿Enviar recordatorio de pago del mes {{month}} a {{email}}?';
+    const reminderPrompt = reminderTemplate
+      .replace('{{month}}', overdueMonth || '')
+      .replace('{{email}}', sponsorEmail || '');
+    if (!confirm(reminderPrompt)) {
       return;
     }
 
     try {
       setIsLoading(true);
+      const overdueMonth = getCurrentMonthLabel();
       
       // Calculate payment information
       const totalPaid = await getTotalPaid(student.id);
-      const totalDue = await calculateTotalDue(student.id);
+      const totalDue = calculateTotalDue(student);
       
       // Get the Cloud Function URL
       // Using the v2 URL pattern (update after deployment)
@@ -177,6 +230,7 @@ export default function StudentsCRUD() {
           totalPaid: totalPaid,
           paymentStatus: student.paymentStatus || 'pending',
           academicYear: student.academicYear || '',
+          overdueMonth: overdueMonth,
         }),
       });
 
@@ -368,7 +422,7 @@ export default function StudentsCRUD() {
       }
 
       // Payment status filter
-      if (filterPaymentStatus && student.paymentStatus !== filterPaymentStatus) {
+      if (filterPaymentStatus && getDerivedPaymentStatus(student) !== filterPaymentStatus) {
         return false;
       }
 
@@ -411,8 +465,8 @@ export default function StudentsCRUD() {
           bValue = (statusLabels[b.status] || b.status || '').toLowerCase();
           break;
         case 'paymentStatus':
-          aValue = (paymentStatusLabels[a.paymentStatus] || a.paymentStatus || '').toLowerCase();
-          bValue = (paymentStatusLabels[b.paymentStatus] || b.paymentStatus || '').toLowerCase();
+          aValue = (paymentStatusLabels[getDerivedPaymentStatus(a)] || getDerivedPaymentStatus(a) || '').toLowerCase();
+          bValue = (paymentStatusLabels[getDerivedPaymentStatus(b)] || getDerivedPaymentStatus(b) || '').toLowerCase();
           break;
         case 'sponsor':
           const aSponsorName = a.sponsor ? `${a.sponsor.firstName || ''} ${a.sponsor.lastName || ''}`.trim() : '';
@@ -504,13 +558,13 @@ export default function StudentsCRUD() {
             <div className="bg-white rounded-xl border border-olive-100 p-6">
               <div className="text-sm text-neutral-600 mb-1">{t.students?.stats?.current || 'Al Día'}</div>
               <div className="text-3xl font-bold text-blue-600">
-                {students.filter(s => s.paymentStatus === 'current').length}
+                {students.filter(s => getDerivedPaymentStatus(s) === 'current').length}
               </div>
             </div>
             <div className="bg-white rounded-xl border border-olive-100 p-6">
               <div className="text-sm text-neutral-600 mb-1">{t.students?.stats?.overdue || 'Atrasados'}</div>
               <div className="text-3xl font-bold text-red-600">
-                {students.filter(s => s.paymentStatus === 'overdue').length}
+                {students.filter(s => getDerivedPaymentStatus(s) === 'overdue').length}
               </div>
             </div>
           </div>
@@ -853,7 +907,9 @@ export default function StudentsCRUD() {
                       </td>
                     </tr>
                   ) : (
-                    displayedStudents.map((student) => (
+                    displayedStudents.map((student) => {
+                      const derivedPaymentStatus = getDerivedPaymentStatus(student);
+                      return (
                       <tr 
                         key={student.id} 
                         onClick={() => setViewingStudent(student)}
@@ -926,13 +982,13 @@ export default function StudentsCRUD() {
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                            student.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                            student.paymentStatus === 'current' ? 'bg-blue-100 text-blue-800' :
-                            student.paymentStatus === 'overdue' ? 'bg-red-100 text-red-800' :
-                            student.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            derivedPaymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                            derivedPaymentStatus === 'current' ? 'bg-blue-100 text-blue-800' :
+                            derivedPaymentStatus === 'overdue' ? 'bg-red-100 text-red-800' :
+                            derivedPaymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                             'bg-neutral-100 text-neutral-800'
                           }`}>
-                            {paymentStatusLabels[student.paymentStatus] || student.paymentStatus || 'Pendiente'}
+                            {paymentStatusLabels[derivedPaymentStatus] || derivedPaymentStatus || 'Pendiente'}
                           </span>
                         </td>
                         {showSponsorColumn && (
@@ -978,14 +1034,14 @@ export default function StudentsCRUD() {
                                 setShowPaymentsModal(true);
                               }}
                               className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center gap-1"
-                              title={t.students?.payments?.addPayment || 'Agregar Pago'}
+                              title={t.students?.buttons?.payments || 'Pagos'}
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                               </svg>
-                              {t.students?.buttons?.addPayment || 'Pago'}
+                              {t.students?.buttons?.payments || 'Pagos'}
                             </button>
-                            {(student.sponsorId || student.sponsor?.email) && student.paymentStatus !== 'paid' && (
+                            {(student.sponsorId || student.sponsor?.email) && shouldShowPaymentReminder(student) && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1004,7 +1060,8 @@ export default function StudentsCRUD() {
                           </div>
                         </td>
                       </tr>
-                    ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -1048,6 +1105,7 @@ export default function StudentsCRUD() {
                 fetchStudents(); // Refresh student list to update payment status
               }}
               t={t}
+              locale={locale}
             />
           )}
 
@@ -1120,6 +1178,15 @@ function StudentDetailModal({ student, onClose, onEdit, t, statusLabels, payment
   };
 
   const fullName = getStudentDisplayName(student);
+  const derivedPaymentStatus = (() => {
+    const baseStatus = student.paymentStatus || 'pending';
+    if (baseStatus === 'paid' || baseStatus === 'current') return baseStatus;
+    const dayOfMonth = new Date().getDate();
+    if (baseStatus === 'pending' && dayOfMonth > 10) {
+      return 'overdue';
+    }
+    return baseStatus;
+  })();
   const sponsor = student.sponsor || {};
 
   const formatDate = (dateString) => {
@@ -1201,13 +1268,13 @@ function StudentDetailModal({ student, onClose, onEdit, t, statusLabels, payment
                   {statusLabels[student.status] || student.status || 'Desconocido'}
                 </span>
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                  student.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                  student.paymentStatus === 'current' ? 'bg-blue-100 text-blue-800' :
-                  student.paymentStatus === 'overdue' ? 'bg-red-100 text-red-800' :
-                  student.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                  derivedPaymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                  derivedPaymentStatus === 'current' ? 'bg-blue-100 text-blue-800' :
+                  derivedPaymentStatus === 'overdue' ? 'bg-red-100 text-red-800' :
+                  derivedPaymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                   'bg-neutral-100 text-neutral-800'
                 }`}>
-                  {paymentStatusLabels[student.paymentStatus] || student.paymentStatus || 'Pendiente'}
+                  {paymentStatusLabels[derivedPaymentStatus] || derivedPaymentStatus || 'Pendiente'}
                 </span>
               </div>
               <div className="flex gap-3 mt-4">
@@ -1883,7 +1950,7 @@ function StudentFormModal({
 }
 
 // Payments Modal Component
-function PaymentsModal({ student, onClose, t }) {
+function PaymentsModal({ student, onClose, t, locale }) {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddPaymentForm, setShowAddPaymentForm] = useState(false);
@@ -1910,6 +1977,156 @@ function PaymentsModal({ student, onClose, t }) {
     const combined = `${first} ${last}`.replace(/\s+/g, ' ').trim();
     if (combined.length > 0) return combined;
     return student.fullName || 'Sin nombre';
+  };
+
+  const formatReceiptDate = (dateValue) => {
+    if (!dateValue) return '';
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return '';
+    const resolvedLocale = locale === 'pt' ? 'pt-BR' : locale === 'en' ? 'en-US' : 'es-ES';
+    return new Intl.DateTimeFormat(resolvedLocale, {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(date);
+  };
+
+  const getMonthLabel = (monthValue) => {
+    const monthIndex = Number.parseInt(monthValue, 10);
+    if (!monthIndex || monthIndex < 1 || monthIndex > 12) return '';
+    const monthsByLocale = {
+      es: [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+      ],
+      pt: [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+      ],
+      en: [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December',
+      ],
+    };
+    const lang = locale === 'pt' ? 'pt' : locale === 'en' ? 'en' : 'es';
+    return monthsByLocale[lang][monthIndex - 1];
+  };
+
+  const generatePaymentReceiptPDF = (payment) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 14;
+    const contentWidth = pageWidth - margin * 2;
+
+    const olive = { r: 101, g: 129, b: 64 };
+    const dark = { r: 30, g: 41, b: 59 };
+
+    doc.setFillColor(olive.r, olive.g, olive.b);
+    doc.rect(0, 0, pageWidth, 18, 'F');
+
+    doc.setFontSize(12);
+    doc.setTextColor(255, 255, 255);
+    doc.text('ESCOLA MÃOS UNIDAS', margin, 12);
+    doc.text('IGLESIA CORAZÓN DE FUEGO', pageWidth - margin, 12, { align: 'right' });
+
+    doc.setTextColor(dark.r, dark.g, dark.b);
+    doc.setFontSize(10);
+    doc.text('Lichinga, Niassa, Mozambique', margin, 24);
+    doc.text('Ramos Mejía, Buenos Aires, Argentina', pageWidth - margin, 24, { align: 'right' });
+
+    doc.setDrawColor(229, 231, 235);
+    doc.line(margin, 28, pageWidth - margin, 28);
+
+    doc.setFontSize(16);
+    doc.setTextColor(olive.r, olive.g, olive.b);
+    doc.text(t.students?.payments?.receiptTitle || 'RECIBO DE PAGO', pageWidth / 2, 38, { align: 'center' });
+
+    doc.setFontSize(10);
+    doc.setTextColor(dark.r, dark.g, dark.b);
+
+    const receiptId = payment.receiptNumber || `${student.matriculationNumber || student.id}-${payment.id?.slice(0, 6)}`;
+    doc.text(`${t.students?.payments?.receiptId || 'Nº'}: ${receiptId}`, margin, 46);
+    doc.text(
+      `${t.students?.payments?.date || 'Fecha'}: ${formatReceiptDate(payment.date) || '-'}`,
+      pageWidth - margin,
+      46,
+      { align: 'right' }
+    );
+
+    let y = 56;
+    const lineHeight = 6;
+    const addRow = (label, value, alignRight = false) => {
+      doc.setFont(undefined, 'bold');
+      doc.text(`${label}:`, margin, y);
+      doc.setFont(undefined, 'normal');
+      if (alignRight) {
+        doc.text(value || '-', pageWidth - margin, y, { align: 'right' });
+      } else {
+        doc.text(value || '-', margin + 40, y);
+      }
+      y += lineHeight;
+    };
+
+    addRow(t.students?.payments?.student || 'Estudiante', getStudentDisplayName(student));
+    addRow(t.students?.payments?.grade || 'Curso', student.currentGrade || '-');
+    addRow(t.students?.payments?.academicYear || 'Ciclo lectivo', student.academicYear || '-');
+
+    const sponsorName = student.sponsor
+      ? `${student.sponsor.firstName || ''} ${student.sponsor.lastName || ''}`.trim()
+      : '';
+    addRow(t.students?.payments?.sponsor || 'Patrocinador', sponsorName || '-');
+
+    y += 2;
+    doc.setDrawColor(229, 231, 235);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 8;
+
+    doc.setFontSize(12);
+    doc.setTextColor(olive.r, olive.g, olive.b);
+    doc.text(t.students?.payments?.receiptDetail || 'Detalle del Pago', margin, y);
+    y += 6;
+    doc.setFontSize(10);
+    doc.setTextColor(dark.r, dark.g, dark.b);
+
+    const monthLabel = payment.month ? getMonthLabel(payment.month) : '';
+    addRow(t.students?.payments?.paymentType || 'Tipo', paymentTypeLabels[payment.type] || payment.type);
+    if (monthLabel) {
+      addRow(t.students?.payments?.month || 'Mes', monthLabel);
+    }
+    addRow(t.students?.payments?.paymentStatus || 'Estado', paymentStatusLabels[payment.status] || payment.status);
+    addRow(t.students?.payments?.amount || 'Monto', formatCurrency(payment.amount), true);
+    addRow(t.students?.payments?.receiptNumber || 'Número de Recibo', payment.receiptNumber || '-');
+    addRow(t.students?.payments?.notes || 'Notas', payment.notes || '-', false);
+
+    y += 4;
+    doc.setDrawColor(229, 231, 235);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 10;
+
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text(`${t.students?.payments?.total || 'Total'}: ${formatCurrency(payment.amount)}`, margin, y);
+
+    y = Math.min(y + 16, pageHeight - 30);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(107, 114, 128);
+    doc.text(
+      t.students?.payments?.receiptCurrency || 'Todos los pagos se expresan en dólares estadounidenses (USD).',
+      pageWidth / 2,
+      y,
+      { align: 'center' }
+    );
+    doc.text(
+      t.students?.payments?.receiptFooter || 'Gracias por apoyar el desarrollo de nuestros estudiantes.',
+      pageWidth / 2,
+      pageHeight - 18,
+      { align: 'center' }
+    );
+
+    const fileName = `recibo-${receiptId || payment.id}.pdf`;
+    doc.save(fileName);
   };
 
   const fetchPayments = async () => {
@@ -2207,8 +2424,8 @@ function PaymentsModal({ student, onClose, t }) {
     [PAYMENT_STATUSES.CANCELLED]: t.students?.payments?.paymentStatusCancelled || 'Cancelado',
   };
 
-  const monthsOptions = MONTHS.map((month, index) => ({
-    value: index + 1,
+  const monthsOptions = MONTHS.slice(2).map((month, index) => ({
+    value: index + 3,
     label: month,
   }));
 
@@ -2591,6 +2808,12 @@ function PaymentsModal({ student, onClose, t }) {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
+                            <button
+                              onClick={() => generatePaymentReceiptPDF(payment)}
+                              className="px-3 py-1 text-sm bg-amber-500 text-white rounded hover:bg-amber-600 transition-colors"
+                            >
+                              {t.students?.payments?.downloadReceipt || 'Recibo'}
+                            </button>
                             <button
                               onClick={() => handleEditClick(payment)}
                               className="px-3 py-1 text-sm bg-olive-600 text-white rounded hover:bg-olive-700 transition-colors"

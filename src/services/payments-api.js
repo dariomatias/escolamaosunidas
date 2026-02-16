@@ -230,28 +230,34 @@ export async function updateStudentPaymentStatus(studentId) {
     const totalPaid = await getTotalPaid(studentId);
     
     let paymentStatus = 'pending';
-    
+
     if (totalPaid >= totalDue) {
       paymentStatus = 'paid';
     } else {
-      // Check if there are overdue payments (simplified logic)
       const payments = await getStudentPayments(studentId);
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      
-      // If we're past the payment month and no payment was made, it's overdue
-      // This is a simplified check - you might want to make it more sophisticated
-      const hasRecentPayment = payments.some(p => {
-        const paymentDate = p.date ? new Date(p.date) : null;
-        if (!paymentDate) return false;
-        return paymentDate.getMonth() === currentMonth && 
-               paymentDate.getFullYear() === currentYear;
-      });
-      
-      if (hasRecentPayment || totalPaid > 0) {
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const currentDay = now.getDate();
+
+      if (currentMonth === 0 || currentMonth === 1) {
         paymentStatus = 'current';
       } else {
+      const hasPaidCurrentMonth = payments.some(p => {
+        if (p.status !== PAYMENT_STATUSES.PAID) return false;
+        const paymentDate = p.date ? new Date(p.date) : null;
+        if (!paymentDate || Number.isNaN(paymentDate.getTime())) return false;
+        return paymentDate.getMonth() === currentMonth &&
+               paymentDate.getFullYear() === currentYear;
+      });
+
+      if (hasPaidCurrentMonth) {
+        paymentStatus = 'current';
+      } else if (currentDay <= 10) {
+        paymentStatus = 'pending';
+      } else {
         paymentStatus = 'overdue';
+      }
       }
     }
     
