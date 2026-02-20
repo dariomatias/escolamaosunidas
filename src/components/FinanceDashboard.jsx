@@ -4,21 +4,39 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
+  BarController,
+  LineController,
   BarElement,
+  LineElement,
+  PointElement,
   Title,
   Tooltip,
   Legend,
 } from 'chart.js';
+import { useNavigate } from 'react-router-dom';
 import AdminNavbar from './AdminNavbar';
+import CurrencyToggle from './CurrencyToggle';
 import { getAllStudents } from '../services/students-api';
 import { calculateTotalDue } from '../services/payments-api';
+import { useFinanceCurrency } from '../hooks/useFinanceCurrency';
 import {
   ADMIN_TRANSLATIONS,
   ADMIN_DEFAULT_LOCALE,
   ADMIN_LOCALE_STORAGE_KEY,
 } from '../i18n/adminTranslations';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarController,
+  LineController,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const getInitialAdminLocale = () => {
   if (typeof window === 'undefined') {
@@ -36,12 +54,14 @@ const parseAmount = (value) => {
 };
 
 export default function FinanceDashboard() {
+  const navigate = useNavigate();
   const [locale, setLocale] = useState(() => getInitialAdminLocale());
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(true);
   const t = ADMIN_TRANSLATIONS[locale] || ADMIN_TRANSLATIONS[ADMIN_DEFAULT_LOCALE];
+  const { currency, setCurrency, formatCurrency, formatInCurrentCurrency, convertToDisplay, rateError } = useFinanceCurrency(locale);
 
   useEffect(() => {
     let isMounted = true;
@@ -158,15 +178,6 @@ export default function FinanceDashboard() {
       .slice(0, 8);
   }, [activeSponsoredStudents, noGradeLabel]);
 
-  const currencyFormatter = useMemo(() => {
-    const resolvedLocale = locale === 'pt' ? 'pt-BR' : locale === 'en' ? 'en-US' : 'es-ES';
-    return new Intl.NumberFormat(resolvedLocale, {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0,
-    });
-  }, [locale]);
-
   const amountChartData = useMemo(
     () => ({
       labels: [
@@ -176,7 +187,7 @@ export default function FinanceDashboard() {
       datasets: [
         {
           label: t.finance?.charts?.amounts?.title || 'Totales',
-          data: [totals.totalPaid, totals.remaining],
+          data: [convertToDisplay(totals.totalPaid), convertToDisplay(totals.remaining)],
           backgroundColor: ['rgba(34, 197, 94, 0.7)', 'rgba(234, 88, 12, 0.7)'],
           borderColor: ['rgba(34, 197, 94, 1)', 'rgba(234, 88, 12, 1)'],
           borderWidth: 1,
@@ -185,7 +196,7 @@ export default function FinanceDashboard() {
         },
       ],
     }),
-    [t.finance?.charts?.amounts, totals.totalPaid, totals.remaining]
+    [t.finance?.charts?.amounts, totals.totalPaid, totals.remaining, convertToDisplay]
   );
 
   const statusChartData = useMemo(
@@ -231,7 +242,7 @@ export default function FinanceDashboard() {
       datasets: [
         {
           label: t.finance?.charts?.gradePaid?.title || 'Recaudado por curso',
-          data: gradeBreakdown.paid,
+          data: gradeBreakdown.paid.map(convertToDisplay),
           backgroundColor: 'rgba(59, 130, 246, 0.7)',
           borderColor: 'rgba(59, 130, 246, 1)',
           borderWidth: 1,
@@ -240,7 +251,7 @@ export default function FinanceDashboard() {
         },
       ],
     }),
-    [gradeBreakdown, t.finance?.charts?.gradePaid?.title]
+    [gradeBreakdown, t.finance?.charts?.gradePaid?.title, convertToDisplay]
   );
 
   const gradeRemainingChartData = useMemo(
@@ -249,7 +260,7 @@ export default function FinanceDashboard() {
       datasets: [
         {
           label: t.finance?.charts?.gradeRemaining?.title || 'Pendiente por curso',
-          data: gradeBreakdown.remaining,
+          data: gradeBreakdown.remaining.map(convertToDisplay),
           backgroundColor: 'rgba(245, 158, 11, 0.7)',
           borderColor: 'rgba(245, 158, 11, 1)',
           borderWidth: 1,
@@ -258,7 +269,7 @@ export default function FinanceDashboard() {
         },
       ],
     }),
-    [gradeBreakdown, t.finance?.charts?.gradeRemaining?.title]
+    [gradeBreakdown, t.finance?.charts?.gradeRemaining?.title, convertToDisplay]
   );
 
   const chartOptions = useMemo(
@@ -270,7 +281,7 @@ export default function FinanceDashboard() {
           label: (context) => {
             const value = context.parsed?.y ?? context.raw;
             if (context.dataset?.isCurrency) {
-              return `${context.label}: ${currencyFormatter.format(value || 0)}`;
+              return `${context.label}: ${formatInCurrentCurrency(value || 0)}`;
             }
             return `${context.label}: ${value ?? 0}`;
           },
@@ -290,7 +301,7 @@ export default function FinanceDashboard() {
         },
       },
     }),
-    [currencyFormatter, t.finance?.charts?.amounts?.title]
+    [formatInCurrentCurrency, t.finance?.charts?.amounts?.title]
   );
 
   return (
@@ -298,13 +309,16 @@ export default function FinanceDashboard() {
       <AdminNavbar onLocaleChange={setLocale} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-10">
-          <h2 className="text-4xl font-bold text-olive-800 mb-3">
-            {t.finance?.title || 'Módulo de Finanzas'}
-          </h2>
-          <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
-            {t.finance?.subtitle || 'Resumen de pagos y estado financiero de los estudiantes becados activos.'}
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-10">
+          <div className="text-center md:text-left">
+            <h2 className="text-4xl font-bold text-olive-800 mb-3">
+              {t.finance?.title || 'Módulo de Finanzas'}
+            </h2>
+            <p className="text-lg text-neutral-600 max-w-2xl">
+              {t.finance?.subtitle || 'Resumen de pagos y estado financiero de los estudiantes becados activos.'}
+            </p>
+          </div>
+          <CurrencyToggle currency={currency} setCurrency={setCurrency} rateError={rateError} t={t} />
         </div>
 
         {loading && (
@@ -329,15 +343,36 @@ export default function FinanceDashboard() {
               </div>
               <div className="bg-white rounded-2xl border border-olive-100 p-6 shadow-sm">
                 <p className="text-sm text-neutral-500 mb-1">{t.finance?.cards?.totalPaid || 'Recaudado'}</p>
-                <p className="text-3xl font-bold text-green-600">{currencyFormatter.format(totals.totalPaid)}</p>
+                <p className="text-3xl font-bold text-green-600">{formatCurrency(totals.totalPaid)}</p>
               </div>
               <div className="bg-white rounded-2xl border border-olive-100 p-6 shadow-sm">
                 <p className="text-sm text-neutral-500 mb-1">{t.finance?.cards?.remaining || 'Pendiente'}</p>
-                <p className="text-3xl font-bold text-orange-500">{currencyFormatter.format(totals.remaining)}</p>
+                <p className="text-3xl font-bold text-orange-500">{formatCurrency(totals.remaining)}</p>
               </div>
               <div className="bg-white rounded-2xl border border-olive-100 p-6 shadow-sm">
                 <p className="text-sm text-neutral-500 mb-1">{t.finance?.cards?.totalDue || 'Total a cobrar'}</p>
-                <p className="text-3xl font-bold text-olive-700">{currencyFormatter.format(totals.totalDue)}</p>
+                <p className="text-3xl font-bold text-olive-700">{formatCurrency(totals.totalDue)}</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-olive-100 shadow-sm mb-10 p-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-semibold text-olive-800">
+                    {t.finance?.projection?.title || 'Proyección Financiera'}
+                  </h3>
+                  <p className="text-sm text-neutral-500 mt-1">
+                    {t.finance?.projection?.cardDescription ||
+                      'Progresión y acumulación de ingresos por cuotas mensuales (solo cuotas).'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/finance/projection')}
+                  className="px-5 py-2.5 rounded-xl bg-olive-600 text-white font-semibold hover:bg-olive-700 transition-colors shadow-sm"
+                >
+                  {t.finance?.projection?.viewProjection ?? 'Ver Proyección Financiera'}
+                </button>
               </div>
             </div>
 
@@ -427,10 +462,10 @@ export default function FinanceDashboard() {
                                 <td className="px-3 py-2 text-neutral-800">{item.name}</td>
                                 <td className="px-3 py-2 text-neutral-600">{item.grade}</td>
                                 <td className="px-3 py-2 text-neutral-600">{item.paymentStatus}</td>
-                                <td className="px-3 py-2 text-right text-neutral-700">{currencyFormatter.format(item.totalDue)}</td>
-                                <td className="px-3 py-2 text-right text-green-700">{currencyFormatter.format(item.totalPaid)}</td>
+                                <td className="px-3 py-2 text-right text-neutral-700">{formatCurrency(item.totalDue)}</td>
+                                <td className="px-3 py-2 text-right text-green-700">{formatCurrency(item.totalPaid)}</td>
                                 <td className="px-3 py-2 text-right text-orange-600 font-semibold">
-                                  {currencyFormatter.format(item.remaining)}
+                                  {formatCurrency(item.remaining)}
                                 </td>
                               </tr>
                             ))}
