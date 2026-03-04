@@ -356,6 +356,143 @@ Equipo Escola Mãos Unidas
   }
 );
 
+// Envía recibo de pago por email al patrocinador (SendGrid)
+exports.sendPaymentReceiptEmail = onRequest(
+  {
+    secrets: [sendgridApiKey],
+    cors: true,
+  },
+  async (req, res) => {
+    sgMail.setApiKey(sendgridApiKey.value());
+
+    if (req.method === 'OPTIONS') {
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.set('Access-Control-Max-Age', '3600');
+      res.status(204).send('');
+      return;
+    }
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    try {
+      const {
+        to,
+        sponsorFirstName,
+        sponsorLastName,
+        studentName,
+        studentMatriculationNumber,
+        academicYear,
+        amount,
+        date,
+        paymentType,
+        receiptNumber,
+        monthLabel,
+        receiptPdfBase64,
+        receiptFilename,
+      } = req.body;
+
+      if (!to) {
+        res.status(400).json({ error: 'Missing required field: to' });
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(to)) {
+        res.status(400).json({ error: 'Invalid email format' });
+        return;
+      }
+
+      const sponsorName = [sponsorFirstName, sponsorLastName].filter(Boolean).join(' ') || 'Patrocinador/a';
+
+      const attachments = [];
+      if (receiptPdfBase64 && receiptFilename) {
+        attachments.push({
+          content: receiptPdfBase64,
+          filename: receiptFilename,
+          type: 'application/pdf',
+          disposition: 'attachment',
+        });
+      }
+
+      const msg = {
+        to,
+        from: 'noreply@escolamaosunidas.com',
+        subject: `Recibo de pago - ${studentName} - Escola Mãos Unidas`,
+        text: `
+Estimado/a ${sponsorName},
+
+Le enviamos el recibo correspondiente al pago realizado para su estudiante apadrinado.
+
+Datos del pago:
+- Estudiante: ${studentName}
+${studentMatriculationNumber ? `- Número de matrícula: ${studentMatriculationNumber}` : ''}
+${academicYear ? `- Ciclo lectivo: ${academicYear}` : ''}
+- Tipo: ${paymentType || '-'}
+${monthLabel ? `- Mes: ${monthLabel}` : ''}
+- Fecha: ${date || '-'}
+- Monto: ${amount || '-'}
+- Nº de recibo: ${receiptNumber || '-'}
+
+El comprobante en PDF se adjunta a este correo.
+
+Agradecemos profundamente su compromiso con la educación de nuestros estudiantes. Su apoyo hace posible que cada niño y niña pueda acceder a una educación de calidad.
+
+Quedamos a su disposición para cualquier consulta.
+
+Atentamente,
+Equipo Escola Mãos Unidas
+        `,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #4a5568; border-bottom: 2px solid #659141; padding-bottom: 10px;">
+              Recibo de Pago - Escola Mãos Unidas
+            </h2>
+            <p>Estimado/a <strong>${sponsorName}</strong>,</p>
+            <p>Le enviamos el recibo correspondiente al pago realizado para su estudiante apadrinado.</p>
+            <div style="background-color: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #659141;">
+              <h3 style="color: #2d3748; margin-top: 0;">Datos del pago</h3>
+              <p style="margin: 8px 0;"><strong>Estudiante:</strong> ${studentName}</p>
+              ${studentMatriculationNumber ? `<p style="margin: 8px 0;"><strong>Nº de matrícula:</strong> ${studentMatriculationNumber}</p>` : ''}
+              ${academicYear ? `<p style="margin: 8px 0;"><strong>Ciclo lectivo:</strong> ${academicYear}</p>` : ''}
+              <p style="margin: 8px 0;"><strong>Tipo:</strong> ${paymentType || '-'}</p>
+              ${monthLabel ? `<p style="margin: 8px 0;"><strong>Mes:</strong> ${monthLabel}</p>` : ''}
+              <p style="margin: 8px 0;"><strong>Fecha:</strong> ${date || '-'}</p>
+              <p style="margin: 8px 0;"><strong>Monto:</strong> ${amount || '-'}</p>
+              <p style="margin: 8px 0;"><strong>Nº de recibo:</strong> ${receiptNumber || '-'}</p>
+            </div>
+            <p>El comprobante en PDF se adjunta a este correo.</p>
+            <p style="color: #4a5568;">Agradecemos profundamente su compromiso con la educación de nuestros estudiantes. Su apoyo hace posible que cada niño y niña pueda acceder a una educación de calidad.</p>
+            <p>Quedamos a su disposición para cualquier consulta.</p>
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #718096; font-size: 12px;">
+              <p>Atentamente,<br><strong>Equipo Escola Mãos Unidas</strong></p>
+              <p>Email: info@escolamaosunidas.com</p>
+            </div>
+          </div>
+        `,
+        attachments,
+      };
+
+      await sgMail.send(msg);
+      res.status(200).json({ success: true, message: 'Receipt email sent successfully' });
+    } catch (error) {
+      // SendGrid errors include response.body with details
+      const details = error.response?.body ? JSON.stringify(error.response.body) : error.message;
+      console.error('Error sending receipt email:', error.message, details);
+      const userMessage = error.response?.statusCode === 401
+        ? 'Configuración de SendGrid incorrecta (API key). Contacte al administrador.'
+        : error.message;
+      res.status(500).json({ error: 'Failed to send email', message: userMessage });
+    }
+  }
+);
+
 exports.sendAdmissionsEmail = onRequest(
   {
     secrets: [sendgridApiKey],

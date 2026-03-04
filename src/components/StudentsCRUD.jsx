@@ -14,7 +14,6 @@ import {
   calculateTotalDue,
   PAYMENT_TYPES,
   PAYMENT_STATUSES,
-  MONTHS
 } from '../services/payments-api';
 import {
   ADMIN_TRANSLATIONS,
@@ -2012,7 +2011,7 @@ function PaymentsModal({ student, onClose, t, locale }) {
     return monthsByLocale[lang][monthIndex - 1];
   };
 
-  const generatePaymentReceiptPDF = (payment) => {
+  const generatePaymentReceiptPDF = (payment, options = {}) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -2126,7 +2125,91 @@ function PaymentsModal({ student, onClose, t, locale }) {
     );
 
     const fileName = `recibo-${receiptId || payment.id}.pdf`;
+    if (options?.returnBlob) {
+      return { blob: doc.output('blob'), filename: fileName };
+    }
     doc.save(fileName);
+  };
+
+  const [sendingReceiptForPaymentId, setSendingReceiptForPaymentId] = useState(null);
+  const [sendReceiptOverlay, setSendReceiptOverlay] = useState(null);
+
+  const handleSendReceiptByEmail = async (payment) => {
+    const sponsorEmail = student?.sponsor?.email || student?.sponsor?.email?.trim?.();
+    if (!sponsorEmail) {
+      alert(t.students?.payments?.noSponsorEmail || 'Este estudiante no tiene email de patrocinador para enviar el recibo.');
+      return;
+    }
+    setSendingReceiptForPaymentId(payment.id);
+    setSendReceiptOverlay('sending');
+    try {
+      const { blob, filename } = generatePaymentReceiptPDF(payment, { returnBlob: true });
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result;
+          resolve(dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+      if (!idToken) {
+        setSendReceiptOverlay({
+          status: 'error',
+          message: t.students?.payments?.errorSendReceiptEmail
+            ? `${t.students.payments.errorSendReceiptEmail}: No hay sesión activa. Inicia sesión de nuevo.`
+            : `Error al enviar recibo por correo: No hay sesión activa. Inicia sesión de nuevo.`,
+        });
+        return;
+      }
+
+      // URL de la Cloud Function (actualizar tras deploy: Firebase Console → Functions → sendPaymentReceiptEmail)
+      const functionUrl = 'https://sendpaymentreceiptemail-zogw5ohfvq-uc.a.run.app';
+      const monthLabel = payment.month ? getMonthLabel(payment.month) : '';
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          to: sponsorEmail,
+          sponsorFirstName: student.sponsor?.firstName || '',
+          sponsorLastName: student.sponsor?.lastName || '',
+          studentName: getStudentDisplayName(student),
+          studentMatriculationNumber: student.matriculationNumber || '',
+          academicYear: student.academicYear || '',
+          amount: formatCurrency(payment.amount),
+          date: formatDate(payment.date),
+          paymentType: paymentTypeLabels[payment.type] || payment.type,
+          receiptNumber: payment.receiptNumber || '',
+          monthLabel,
+          receiptPdfBase64: base64,
+          receiptFilename: filename,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || errData.error || response.statusText);
+      }
+      setSendReceiptOverlay({
+        status: 'success',
+        message: t.students?.payments?.receiptEmailSent || 'Recibo enviado por correo correctamente.',
+      });
+    } catch (err) {
+      console.error('Error sending receipt email:', err);
+      setSendReceiptOverlay({
+        status: 'error',
+        message: t.students?.payments?.errorSendReceiptEmail
+          ? `${t.students.payments.errorSendReceiptEmail}: ${err.message}`
+          : `Error al enviar recibo por correo: ${err.message}`,
+      });
+    } finally {
+      setSendingReceiptForPaymentId(null);
+    }
   };
 
   const fetchPayments = async () => {
@@ -2238,7 +2321,7 @@ function PaymentsModal({ student, onClose, t, locale }) {
         ...(receiptData || {}),
       };
       
-      await addPayment(student.id, paymentData);
+      const newPaymentId = await addPayment(student.id, paymentData);
       setShowAddPaymentForm(false);
       setPaymentForm({
         type: PAYMENT_TYPES.MONTHLY,
@@ -2252,6 +2335,22 @@ function PaymentsModal({ student, onClose, t, locale }) {
       setReceiptFile(null);
       setReceiptPreview(null);
       await fetchPayments();
+
+      // Enviar recibo por correo automáticamente si el estudiante tiene email de patrocinador
+      const sponsorEmail = student?.sponsor?.email || student?.sponsor?.email?.trim?.();
+      if (sponsorEmail) {
+        const newPayment = {
+          id: newPaymentId,
+          amount: paymentForm.amount,
+          date: paymentForm.date,
+          type: paymentForm.type,
+          month: paymentForm.month || '',
+          receiptNumber: paymentForm.receiptNumber || '',
+          status: paymentForm.status,
+          ...(receiptData || {}),
+        };
+        handleSendReceiptByEmail(newPayment);
+      }
     } catch (error) {
       console.error('Error adding payment:', error);
       alert(t.students?.payments?.errorAdd || 'Error al agregar pago');
@@ -2424,9 +2523,9 @@ function PaymentsModal({ student, onClose, t, locale }) {
     [PAYMENT_STATUSES.CANCELLED]: t.students?.payments?.paymentStatusCancelled || 'Cancelado',
   };
 
-  const monthsOptions = MONTHS.slice(2).map((month, index) => ({
-    value: index + 3,
-    label: month,
+  const monthsOptions = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => ({
+    value: String(num),
+    label: getMonthLabel(String(num)),
   }));
 
   return (
@@ -2434,6 +2533,55 @@ function PaymentsModal({ student, onClose, t, locale }) {
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
+      {sendReceiptOverlay && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-busy={sendReceiptOverlay === 'sending'}
+        >
+          {sendReceiptOverlay === 'sending' ? (
+            <div className="bg-white rounded-2xl shadow-xl px-10 py-8 flex flex-col items-center gap-4 min-w-[280px]">
+              <div className="w-12 h-12 border-4 border-olive-200 border-t-olive-600 rounded-full animate-spin" />
+              <p className="text-olive-800 font-medium">
+                {t.students?.payments?.sendingReceipt || 'Enviando recibo por correo...'}
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-xl px-8 py-6 max-w-md w-full text-center">
+              {sendReceiptOverlay.status === 'success' ? (
+                <>
+                  <div className="mx-auto w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <p className="text-olive-800 font-medium mb-1">{t.students?.payments?.receiptEmailSentTitle || 'Correo enviado'}</p>
+                  <p className="text-neutral-600 text-sm mb-6">{sendReceiptOverlay.message}</p>
+                </>
+              ) : (
+                <>
+                  <div className="mx-auto w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                  <p className="text-olive-800 font-medium mb-1">{t.students?.payments?.receiptEmailErrorTitle || 'Error al enviar'}</p>
+                  <p className="text-neutral-600 text-sm mb-6">{sendReceiptOverlay.message}</p>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => setSendReceiptOverlay(null)}
+                className="px-6 py-2 bg-olive-600 text-white rounded-lg hover:bg-olive-700 font-medium transition-colors"
+              >
+                {t.students?.buttons?.close ?? 'Cerrar'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       <div 
         className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
@@ -2770,7 +2918,7 @@ function PaymentsModal({ student, onClose, t, locale }) {
                         </td>
                         <td className="px-4 py-3 text-neutral-700">
                           {paymentTypeLabels[payment.type] || payment.type}
-                          {payment.month && ` - ${MONTHS[parseInt(payment.month) - 1]}`}
+                          {payment.month && ` - ${getMonthLabel(payment.month)}`}
                         </td>
                         <td className="px-4 py-3 font-medium text-neutral-900">
                           {formatCurrency(payment.amount)}
@@ -2807,7 +2955,22 @@ function PaymentsModal({ student, onClose, t, locale }) {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleSendReceiptByEmail(payment)}
+                              disabled={!!sendingReceiptForPaymentId || !student?.sponsor?.email}
+                              title={t.students?.payments?.sendReceiptByEmail || 'Enviar recibo por correo'}
+                              className="px-3 py-1 text-sm bg-sky-600 text-white rounded hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-1"
+                            >
+                              {sendingReceiptForPaymentId === payment.id ? (
+                                <span className="animate-pulse text-xs">{t.common?.loading || '...'}</span>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                              )}
+                            </button>
                             <button
                               onClick={() => generatePaymentReceiptPDF(payment)}
                               className="px-3 py-1 text-sm bg-amber-500 text-white rounded hover:bg-amber-600 transition-colors"
