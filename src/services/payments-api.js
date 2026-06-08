@@ -33,6 +33,17 @@ export const PAYMENT_STATUSES = {
   CANCELLED: 'cancelled',
 };
 
+export const STUDENT_PAYMENT_STATUSES = {
+  PAID: 'paid',
+  CURRENT: 'current',
+  OVERDUE: 'overdue',
+  PENDING: 'pending',
+  NOT_APPLICABLE: 'not_applicable',
+};
+
+export const TUITION_DUE_MONTHS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+export const PAYMENT_GRACE_DAY = 10;
+
 /**
  * Months for payment tracking
  */
@@ -40,6 +51,48 @@ export const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
+
+export function isTuitionDueMonth(date = new Date()) {
+  return TUITION_DUE_MONTHS.includes(date.getMonth() + 1);
+}
+
+function getPaymentDateTime(payment) {
+  const paymentDate = payment.date ? new Date(payment.date) : null;
+  if (!paymentDate || Number.isNaN(paymentDate.getTime())) return 0;
+  return new Date(
+    paymentDate.getFullYear(),
+    paymentDate.getMonth(),
+    paymentDate.getDate()
+  ).getTime();
+}
+
+function getPaymentPeriodSortValue(payment) {
+  if (payment.type === PAYMENT_TYPES.ENROLLMENT) return 0;
+
+  const explicitMonth = Number.parseInt(payment.month, 10);
+  if (explicitMonth >= 1 && explicitMonth <= 12) {
+    return explicitMonth;
+  }
+
+  const paymentDate = payment.date ? new Date(payment.date) : null;
+  if (paymentDate && !Number.isNaN(paymentDate.getTime())) {
+    return paymentDate.getMonth() + 1;
+  }
+
+  return 0;
+}
+
+export function sortPaymentsForDisplay(payments) {
+  return [...payments].sort((a, b) => {
+    const dateDifference = getPaymentDateTime(b) - getPaymentDateTime(a);
+    if (dateDifference !== 0) return dateDifference;
+
+    const periodDifference = getPaymentPeriodSortValue(b) - getPaymentPeriodSortValue(a);
+    if (periodDifference !== 0) return periodDifference;
+
+    return String(b.id || '').localeCompare(String(a.id || ''));
+  });
+}
 
 /**
  * Get all payments for a student
@@ -63,7 +116,7 @@ export async function getStudentPayments(studentId) {
       });
     });
     
-    return payments;
+    return sortPaymentsForDisplay(payments);
   } catch (error) {
     console.error('Error getting student payments:', error);
     throw error;
@@ -198,11 +251,11 @@ export async function getTotalPaid(studentId) {
  * @returns {number} Total due amount
  */
 export function calculateTotalDue(student) {
-  // Default payment plan: Enrollment fee + 10 monthly fees
+  // Default payment plan: Enrollment fee + monthly fees from February to November.
   // All amounts are in USD (US Dollars)
   const enrollmentFee = parseFloat(student.enrollmentFee) || 20; // USD
   const monthlyFee = parseFloat(student.monthlyFee) || 40; // USD
-  const numberOfMonths = parseInt(student.numberOfMonths) || 10;
+  const numberOfMonths = parseInt(student.numberOfMonths) || TUITION_DUE_MONTHS.length;
   
   // If student has full payment amount, use that
   if (student.fullPaymentAmount) {
@@ -210,6 +263,45 @@ export function calculateTotalDue(student) {
   }
   
   return enrollmentFee + (monthlyFee * numberOfMonths);
+}
+
+function isPaidForMonth(payment, monthNumber, year) {
+  if (payment.status !== PAYMENT_STATUSES.PAID) return false;
+
+  const paymentDate = payment.date ? new Date(payment.date) : null;
+  const hasValidPaymentDate = paymentDate && !Number.isNaN(paymentDate.getTime());
+  const explicitMonth = Number.parseInt(payment.month, 10);
+
+  if (TUITION_DUE_MONTHS.includes(explicitMonth)) {
+    return explicitMonth === monthNumber &&
+      (!hasValidPaymentDate || paymentDate.getFullYear() === year);
+  }
+
+  if (!hasValidPaymentDate) return false;
+  return paymentDate.getMonth() + 1 === monthNumber &&
+    paymentDate.getFullYear() === year;
+}
+
+export function getOverdueTuitionMonths(payments, date = new Date()) {
+  const currentMonthNumber = date.getMonth() + 1;
+  const currentYear = date.getFullYear();
+  const currentDay = date.getDate();
+  const firstDueMonth = TUITION_DUE_MONTHS[0];
+  const lastDueMonth = TUITION_DUE_MONTHS[TUITION_DUE_MONTHS.length - 1];
+
+  if (currentMonthNumber < firstDueMonth) {
+    return [];
+  }
+
+  const dueMonthsToEvaluate = TUITION_DUE_MONTHS.filter((monthNumber) => {
+    if (currentMonthNumber > lastDueMonth) return true;
+    if (monthNumber < currentMonthNumber) return true;
+    return monthNumber === currentMonthNumber && currentDay > PAYMENT_GRACE_DAY;
+  });
+
+  return dueMonthsToEvaluate.filter((monthNumber) =>
+    !payments.some((payment) => isPaidForMonth(payment, monthNumber, currentYear))
+  );
 }
 
 /**
@@ -229,35 +321,36 @@ export async function updateStudentPaymentStatus(studentId) {
     const totalDue = calculateTotalDue(student);
     const totalPaid = await getTotalPaid(studentId);
     
-    let paymentStatus = 'pending';
+    let paymentStatus = STUDENT_PAYMENT_STATUSES.PENDING;
 
-    if (totalPaid >= totalDue) {
-      paymentStatus = 'paid';
+    if (student.status === 'inactive') {
+      paymentStatus = STUDENT_PAYMENT_STATUSES.NOT_APPLICABLE;
+    } else if (totalPaid >= totalDue) {
+      paymentStatus = STUDENT_PAYMENT_STATUSES.PAID;
     } else {
       const payments = await getStudentPayments(studentId);
       const now = new Date();
-      const currentMonth = now.getMonth();
+      const currentMonthNumber = now.getMonth() + 1;
       const currentYear = now.getFullYear();
       const currentDay = now.getDate();
+      const overdueMonths = getOverdueTuitionMonths(payments, now);
 
-      if (currentMonth === 0 || currentMonth === 1) {
-        paymentStatus = 'current';
+      if (overdueMonths.length > 0) {
+        paymentStatus = STUDENT_PAYMENT_STATUSES.OVERDUE;
+      } else if (!isTuitionDueMonth(now)) {
+        paymentStatus = STUDENT_PAYMENT_STATUSES.CURRENT;
       } else {
-      const hasPaidCurrentMonth = payments.some(p => {
-        if (p.status !== PAYMENT_STATUSES.PAID) return false;
-        const paymentDate = p.date ? new Date(p.date) : null;
-        if (!paymentDate || Number.isNaN(paymentDate.getTime())) return false;
-        return paymentDate.getMonth() === currentMonth &&
-               paymentDate.getFullYear() === currentYear;
-      });
+        const hasPaidCurrentMonth = payments.some(p =>
+          isPaidForMonth(p, currentMonthNumber, currentYear)
+        );
 
-      if (hasPaidCurrentMonth) {
-        paymentStatus = 'current';
-      } else if (currentDay <= 10) {
-        paymentStatus = 'pending';
-      } else {
-        paymentStatus = 'overdue';
-      }
+        if (hasPaidCurrentMonth) {
+          paymentStatus = STUDENT_PAYMENT_STATUSES.CURRENT;
+        } else if (currentDay <= PAYMENT_GRACE_DAY) {
+          paymentStatus = STUDENT_PAYMENT_STATUSES.PENDING;
+        } else {
+          paymentStatus = STUDENT_PAYMENT_STATUSES.OVERDUE;
+        }
       }
     }
     
@@ -272,4 +365,3 @@ export async function updateStudentPaymentStatus(studentId) {
     // Don't throw - this is a background update
   }
 }
-

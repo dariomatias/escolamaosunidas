@@ -1,4 +1,4 @@
-// Proyección financiera: solo ingresos por cuotas (desde marzo)
+// Proyección financiera: solo ingresos por cuotas (febrero a noviembre)
 export const ALUMNOS_COLEGIO = 49;
 export const BECADOS_CHACARRONES = 60;
 export const TOTAL_PAGANTES = ALUMNOS_COLEGIO + BECADOS_CHACARRONES;
@@ -17,9 +17,10 @@ export function getProjectionMonths() {
     'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
   ];
   const now = new Date();
-  const startMonth = 2; // marzo = índice 2
+  const startMonth = 1; // febrero = índice 1
+  const monthCount = 10;
   const startYear = now.getMonth() >= startMonth ? now.getFullYear() : now.getFullYear() - 1;
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < monthCount; i++) {
     const m = (startMonth + i) % 12;
     const y = startYear + Math.floor((startMonth + i) / 12);
     months.push({ label: `${monthNames[m]} ${y}`, month: m, year: y });

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, query, orderBy, deleteField } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { jsPDF } from 'jspdf';
 import { db, storage, auth } from '../config/firebase';
@@ -14,6 +14,11 @@ import {
   calculateTotalDue,
   PAYMENT_TYPES,
   PAYMENT_STATUSES,
+  STUDENT_PAYMENT_STATUSES,
+  TUITION_DUE_MONTHS,
+  PAYMENT_GRACE_DAY,
+  isTuitionDueMonth,
+  getOverdueTuitionMonths,
 } from '../services/payments-api';
 import {
   ADMIN_TRANSLATIONS,
@@ -23,7 +28,57 @@ import {
 
 const STATUS_OPTIONS = ['active', 'inactive', 'graduated', 'suspended'];
 const GRADE_OPTIONS = ['Jardín', '1° grado', '2do grado', '3º Grado', '4º Grado', '5º Grado', '6º Grado'];
-const PAYMENT_STATUS_OPTIONS = ['paid', 'current', 'overdue', 'pending'];
+const PAYMENT_STATUS_OPTIONS = [
+  STUDENT_PAYMENT_STATUSES.PAID,
+  STUDENT_PAYMENT_STATUSES.CURRENT,
+  STUDENT_PAYMENT_STATUSES.OVERDUE,
+  STUDENT_PAYMENT_STATUSES.PENDING,
+  STUDENT_PAYMENT_STATUSES.NOT_APPLICABLE,
+];
+
+const getPaymentStatusBadgeClass = (paymentStatus) => (
+  paymentStatus === STUDENT_PAYMENT_STATUSES.PAID ? 'bg-green-100 text-green-800' :
+  paymentStatus === STUDENT_PAYMENT_STATUSES.CURRENT ? 'bg-blue-100 text-blue-800' :
+  paymentStatus === STUDENT_PAYMENT_STATUSES.OVERDUE ? 'bg-red-100 text-red-800' :
+  paymentStatus === STUDENT_PAYMENT_STATUSES.PENDING ? 'bg-yellow-100 text-yellow-800' :
+  paymentStatus === STUDENT_PAYMENT_STATUSES.NOT_APPLICABLE ? 'bg-gray-100 text-gray-700' :
+  'bg-neutral-100 text-neutral-800'
+);
+
+const getIntlLocale = (locale) => (
+  locale === 'pt' ? 'pt-BR' : locale === 'en' ? 'en-US' : 'es-AR'
+);
+
+const formatUsdAmount = (amount, locale = 'es') => (
+  new Intl.NumberFormat(getIntlLocale(locale), {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(Number(amount) || 0)
+);
+
+const derivePaymentStatusForCurrentDate = (studentOrStatus = STUDENT_PAYMENT_STATUSES.PENDING, now = new Date()) => {
+  const isStudent = studentOrStatus && typeof studentOrStatus === 'object';
+  if (isStudent && studentOrStatus.status === 'inactive') {
+    return STUDENT_PAYMENT_STATUSES.NOT_APPLICABLE;
+  }
+
+  const baseStatus = isStudent
+    ? studentOrStatus.paymentStatus || STUDENT_PAYMENT_STATUSES.PENDING
+    : studentOrStatus || STUDENT_PAYMENT_STATUSES.PENDING;
+
+  if (
+    baseStatus === STUDENT_PAYMENT_STATUSES.PAID ||
+    baseStatus === STUDENT_PAYMENT_STATUSES.CURRENT ||
+    baseStatus === STUDENT_PAYMENT_STATUSES.NOT_APPLICABLE
+  ) return baseStatus;
+  if (!isTuitionDueMonth(now)) return STUDENT_PAYMENT_STATUSES.CURRENT;
+  if (baseStatus === STUDENT_PAYMENT_STATUSES.PENDING && now.getDate() > PAYMENT_GRACE_DAY) {
+    return STUDENT_PAYMENT_STATUSES.OVERDUE;
+  }
+  return baseStatus;
+};
 
 const getInitialAdminLocale = () => {
   if (typeof window === 'undefined') {
@@ -52,14 +107,19 @@ export default function StudentsCRUD() {
   const [filterSponsor, setFilterSponsor] = useState('');
   const [visibleItems, setVisibleItems] = useState(50); // Number of items to render initially
   const [showSponsorColumn, setShowSponsorColumn] = useState(false);
+  const [showOverdueReport, setShowOverdueReport] = useState(false);
+  const [overdueReportGroups, setOverdueReportGroups] = useState([]);
+  const [loadingOverdueReport, setLoadingOverdueReport] = useState(false);
+  const [overdueReportError, setOverdueReportError] = useState('');
 
   const t = ADMIN_TRANSLATIONS[locale] || ADMIN_TRANSLATIONS[ADMIN_DEFAULT_LOCALE];
   const statusLabels = t.students?.statuses || {};
   const paymentStatusLabels = {
-    paid: t.students?.payments?.paymentStatusPaid || 'Pagado Completo',
-    current: t.students?.payments?.paymentStatusCurrent || 'Al Día',
-    overdue: t.students?.payments?.paymentStatusOverdue || 'Atrasado',
-    pending: t.students?.payments?.paymentStatusPending || 'Pendiente',
+    [STUDENT_PAYMENT_STATUSES.PAID]: t.students?.payments?.paymentStatusPaid || 'Pagado Completo',
+    [STUDENT_PAYMENT_STATUSES.CURRENT]: t.students?.payments?.paymentStatusCurrent || 'Al Día',
+    [STUDENT_PAYMENT_STATUSES.OVERDUE]: t.students?.payments?.paymentStatusOverdue || 'Atrasado',
+    [STUDENT_PAYMENT_STATUSES.PENDING]: t.students?.payments?.paymentStatusPending || 'Pendiente',
+    [STUDENT_PAYMENT_STATUSES.NOT_APPLICABLE]: t.students?.payments?.paymentStatusNotApplicable || 'No aplica',
   };
 
   const getStudentDisplayName = (student) => {
@@ -70,8 +130,8 @@ export default function StudentsCRUD() {
     return student.fullName || 'Sin nombre';
   };
 
-  const getCurrentMonthLabel = () => {
-    const monthIndex = new Date().getMonth();
+  const getMonthLabel = (monthNumber) => {
+    const monthIndex = Number(monthNumber) - 1;
     const monthsByLocale = {
       es: [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -87,33 +147,38 @@ export default function StudentsCRUD() {
       ],
     };
     const lang = locale === 'pt' ? 'pt' : locale === 'en' ? 'en' : 'es';
-    return monthsByLocale[lang][monthIndex];
+    return monthsByLocale[lang][monthIndex] || `Mes ${monthNumber}`;
+  };
+
+  const getCurrentMonthLabel = () => {
+    return getMonthLabel(new Date().getMonth() + 1);
+  };
+
+  const getStudentSponsorInfo = (student) => {
+    const sponsor = student.sponsor || {};
+    const sponsorName = `${sponsor.firstName || ''} ${sponsor.lastName || ''}`
+      .replace(/\s+/g, ' ')
+      .trim();
+    const fallbackName = sponsor.email || student.sponsorId || 'Sin padrino';
+
+    return {
+      key: student.sponsorId || sponsor.email || sponsorName || 'no-sponsor',
+      name: sponsorName || fallbackName,
+      email: sponsor.email || '',
+    };
   };
 
   const getDerivedPaymentStatus = (student) => {
-    const baseStatus = student.paymentStatus || 'pending';
-    if (baseStatus === 'paid' || baseStatus === 'current') return baseStatus;
-    const now = new Date();
-    const monthIndex = now.getMonth();
-    const dayOfMonth = now.getDate();
-    if (monthIndex === 0 || monthIndex === 1) {
-      return 'current';
-    }
-    if (baseStatus === 'pending' && dayOfMonth > 10) {
-      return 'overdue';
-    }
-    return baseStatus;
+    return derivePaymentStatusForCurrentDate(student);
   };
 
   const shouldShowPaymentReminder = (student) => {
     const today = new Date();
-    const dayOfMonth = today.getDate();
-    const monthIndex = today.getMonth();
-    if (monthIndex === 0 || monthIndex === 1) return false;
-    if (dayOfMonth <= 10) return false;
+    if (!isTuitionDueMonth(today)) return false;
+    if (today.getDate() <= PAYMENT_GRACE_DAY) return false;
     const derivedStatus = getDerivedPaymentStatus(student);
-    if (derivedStatus === 'paid') return false;
-    return derivedStatus === 'overdue';
+    if (derivedStatus === STUDENT_PAYMENT_STATUSES.PAID) return false;
+    return derivedStatus === STUDENT_PAYMENT_STATUSES.OVERDUE;
   };
 
   // Helper function for date formatting (dd/mm/yyyy) - handles timezone issues
@@ -192,18 +257,17 @@ export default function StudentsCRUD() {
       return;
     }
 
-    const reminderTemplate = t.students?.confirm?.sendReminderForMonth ||
-      '¿Enviar recordatorio de pago del mes {{month}} a {{email}}?';
-    const reminderPrompt = reminderTemplate
-      .replace('{{month}}', overdueMonth || '')
-      .replace('{{email}}', sponsorEmail || '');
-    if (!confirm(reminderPrompt)) {
-      return;
-    }
-
     try {
       setIsLoading(true);
       const overdueMonth = getCurrentMonthLabel();
+      const reminderTemplate = t.students?.confirm?.sendReminderForMonth ||
+        '¿Enviar recordatorio de pago del mes {{month}} a {{email}}?';
+      const reminderPrompt = reminderTemplate
+        .replace('{{month}}', overdueMonth || '')
+        .replace('{{email}}', sponsorEmail || '');
+      if (!confirm(reminderPrompt)) {
+        return;
+      }
       
       // Calculate payment information
       const totalPaid = await getTotalPaid(student.id);
@@ -227,7 +291,7 @@ export default function StudentsCRUD() {
           studentMatriculationNumber: student.matriculationNumber || '',
           totalDue: totalDue,
           totalPaid: totalPaid,
-          paymentStatus: student.paymentStatus || 'pending',
+          paymentStatus: getDerivedPaymentStatus(student),
           academicYear: student.academicYear || '',
           overdueMonth: overdueMonth,
         }),
@@ -267,6 +331,11 @@ export default function StudentsCRUD() {
       
       // Prepare update data
       const updateData = { ...rest };
+      if (updateData.status === 'inactive') {
+        updateData.paymentStatus = STUDENT_PAYMENT_STATUSES.NOT_APPLICABLE;
+      } else if (updateData.paymentStatus === STUDENT_PAYMENT_STATUSES.NOT_APPLICABLE) {
+        updateData.paymentStatus = STUDENT_PAYMENT_STATUSES.PENDING;
+      }
       
       // If changing status to inactive, clear sponsor information
       if (isStatusChangingToInactive && hasSponsorId) {
@@ -385,6 +454,98 @@ export default function StudentsCRUD() {
     setFilterStatus('');
     setFilterPaymentStatus('');
     setFilterSponsor('');
+  };
+
+  const activeStudentsCount = useMemo(() => (
+    students.filter((student) => student.status === 'active').length
+  ), [students]);
+
+  const upToDateStudentsCount = useMemo(() => (
+    students
+      .filter((student) => student.status === 'active')
+      .filter((student) => {
+        const paymentStatus = getDerivedPaymentStatus(student);
+        return paymentStatus === STUDENT_PAYMENT_STATUSES.PAID ||
+          paymentStatus === STUDENT_PAYMENT_STATUSES.PENDING ||
+          paymentStatus === STUDENT_PAYMENT_STATUSES.CURRENT;
+      }).length
+  ), [students]);
+
+  const overdueStudentsCount = useMemo(() => (
+    students
+      .filter((student) => student.status === 'active')
+      .filter((student) =>
+        getDerivedPaymentStatus(student) === STUDENT_PAYMENT_STATUSES.OVERDUE
+      ).length
+  ), [students]);
+
+  const handleOpenOverdueReport = async () => {
+    setShowOverdueReport(true);
+    setLoadingOverdueReport(true);
+    setOverdueReportError('');
+    setOverdueReportGroups([]);
+
+    try {
+      const now = new Date();
+      const overdueStudents = students
+        .filter((student) => student.status === 'active')
+        .filter((student) => getDerivedPaymentStatus(student) === STUDENT_PAYMENT_STATUSES.OVERDUE);
+
+      const reportRows = await Promise.all(overdueStudents.map(async (student) => {
+        const payments = await getStudentPayments(student.id);
+        const overdueMonths = getOverdueTuitionMonths(payments, now);
+        const monthlyFee = parseFloat(student.monthlyFee) || 40;
+        const sponsorInfo = getStudentSponsorInfo(student);
+
+        return {
+          studentId: student.id,
+          studentName: getStudentDisplayName(student),
+          matriculationNumber: student.matriculationNumber || '-',
+          currentGrade: student.currentGrade || '-',
+          academicYear: student.academicYear || '-',
+          sponsorKey: sponsorInfo.key,
+          sponsorName: sponsorInfo.name,
+          sponsorEmail: sponsorInfo.email,
+          overdueMonths,
+          overdueMonthLabels: overdueMonths.map(getMonthLabel),
+          monthlyFee,
+          total: overdueMonths.length * monthlyFee,
+        };
+      }));
+
+      const groupedRows = reportRows.reduce((groups, row) => {
+        const existingGroup = groups.get(row.sponsorKey) || {
+          key: row.sponsorKey,
+          sponsorName: row.sponsorName,
+          sponsorEmail: row.sponsorEmail,
+          students: [],
+          total: 0,
+        };
+
+        existingGroup.students.push(row);
+        existingGroup.total += row.total;
+        groups.set(row.sponsorKey, existingGroup);
+        return groups;
+      }, new Map());
+
+      const sortedGroups = Array.from(groupedRows.values())
+        .map((group) => ({
+          ...group,
+          students: [...group.students].sort((a, b) => {
+            const matriculationCompare = String(a.matriculationNumber).localeCompare(String(b.matriculationNumber));
+            if (matriculationCompare !== 0) return matriculationCompare;
+            return a.studentName.localeCompare(b.studentName);
+          }),
+        }))
+        .sort((a, b) => a.sponsorName.localeCompare(b.sponsorName));
+
+      setOverdueReportGroups(sortedGroups);
+    } catch (error) {
+      console.error('Error building overdue report:', error);
+      setOverdueReportError('No se pudo generar el reporte de atrasados.');
+    } finally {
+      setLoadingOverdueReport(false);
+    }
   };
 
   const sortedStudents = useMemo(() => {
@@ -551,21 +712,26 @@ export default function StudentsCRUD() {
             <div className="bg-white rounded-xl border border-olive-100 p-6">
               <div className="text-sm text-neutral-600 mb-1">{t.students?.stats?.active || 'Activos'}</div>
               <div className="text-3xl font-bold text-green-600">
-                {students.filter(s => s.status === 'active').length}
+                {activeStudentsCount}
               </div>
             </div>
             <div className="bg-white rounded-xl border border-olive-100 p-6">
               <div className="text-sm text-neutral-600 mb-1">{t.students?.stats?.current || 'Al Día'}</div>
               <div className="text-3xl font-bold text-blue-600">
-                {students.filter(s => getDerivedPaymentStatus(s) === 'current').length}
+                {upToDateStudentsCount}
               </div>
             </div>
-            <div className="bg-white rounded-xl border border-olive-100 p-6">
+            <button
+              type="button"
+              onClick={handleOpenOverdueReport}
+              className="bg-white rounded-xl border border-olive-100 p-6 text-left hover:border-red-200 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-red-200 transition-colors"
+              aria-label="Abrir reporte de pagos atrasados"
+            >
               <div className="text-sm text-neutral-600 mb-1">{t.students?.stats?.overdue || 'Atrasados'}</div>
               <div className="text-3xl font-bold text-red-600">
-                {students.filter(s => getDerivedPaymentStatus(s) === 'overdue').length}
+                {overdueStudentsCount}
               </div>
-            </div>
+            </button>
           </div>
 
           {/* Filters Section */}
@@ -980,13 +1146,7 @@ export default function StudentsCRUD() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                            derivedPaymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                            derivedPaymentStatus === 'current' ? 'bg-blue-100 text-blue-800' :
-                            derivedPaymentStatus === 'overdue' ? 'bg-red-100 text-red-800' :
-                            derivedPaymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-neutral-100 text-neutral-800'
-                          }`}>
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusBadgeClass(derivedPaymentStatus)}`}>
                             {paymentStatusLabels[derivedPaymentStatus] || derivedPaymentStatus || 'Pendiente'}
                           </span>
                         </td>
@@ -1079,6 +1239,18 @@ export default function StudentsCRUD() {
             </div>
           </div>
 
+          {/* Overdue Payments Report Modal */}
+          {showOverdueReport && (
+            <OverdueReportModal
+              groups={overdueReportGroups}
+              loading={loadingOverdueReport}
+              error={overdueReportError}
+              onClose={() => setShowOverdueReport(false)}
+              t={t}
+              locale={locale}
+            />
+          )}
+
           {/* View Details Modal */}
           {viewingStudent && (
             <StudentDetailModal
@@ -1166,6 +1338,140 @@ export default function StudentsCRUD() {
   );
 }
 
+function OverdueReportModal({ groups, loading, error, onClose, t, locale }) {
+  const totalStudents = groups.reduce((sum, group) => sum + group.students.length, 0);
+  const grandTotal = groups.reduce((sum, group) => sum + group.total, 0);
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-b border-olive-100 px-6 py-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-olive-800">Reporte de pagos atrasados</h2>
+            <p className="text-sm text-neutral-600 mt-1">
+              Agrupado y ordenado por padrino
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-neutral-400 hover:text-neutral-600 text-2xl leading-none"
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+            <div className="text-sm text-neutral-600">
+              {loading
+                ? 'Calculando meses adeudados...'
+                : `${totalStudents} alumnos atrasados en ${groups.length} padrinos`}
+            </div>
+            <div className="bg-olive-50 border border-olive-100 rounded-lg px-4 py-3 text-right">
+              <div className="text-xs uppercase tracking-wide text-olive-700 font-semibold">Total general</div>
+              <div className="text-2xl font-bold text-olive-900">{formatUsdAmount(grandTotal, locale)}</div>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="py-12 flex flex-col items-center gap-4 text-neutral-600">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-olive-600"></div>
+              <p>{t.common?.loading || 'Cargando...'}</p>
+            </div>
+          ) : error ? (
+            <div className="border border-red-200 bg-red-50 text-red-700 rounded-lg px-4 py-3">
+              {error}
+            </div>
+          ) : groups.length === 0 ? (
+            <div className="border border-olive-100 bg-olive-50 text-olive-800 rounded-lg px-4 py-8 text-center">
+              No hay pagos atrasados para mostrar.
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {groups.map((group) => (
+                <section key={group.key} className="border border-olive-100 rounded-xl overflow-hidden">
+                  <div className="bg-olive-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <h3 className="text-lg font-semibold text-olive-900">{group.sponsorName}</h3>
+                      {group.sponsorEmail && (
+                        <p className="text-sm text-neutral-600">{group.sponsorEmail}</p>
+                      )}
+                    </div>
+                    <div className="text-sm sm:text-right text-neutral-700">
+                      <div>{group.students.length} alumnos</div>
+                      <div className="font-semibold text-olive-900">
+                        Total padrino: {formatUsdAmount(group.total, locale)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-olive-100">
+                      <thead className="bg-white">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wide">Alumno</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wide">Matrícula</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wide">Curso</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wide">Meses adeudados</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wide">Valor mensual</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wide">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-olive-100 bg-white">
+                        {group.students.map((student) => (
+                          <tr key={student.studentId} className="hover:bg-olive-50/60">
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-neutral-900">{student.studentName}</div>
+                              <div className="text-xs text-neutral-500">{student.academicYear}</div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap">
+                              {student.matriculationNumber}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap">
+                              {student.currentGrade}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-neutral-800 min-w-[220px]">
+                              {student.overdueMonthLabels.length > 0
+                                ? student.overdueMonthLabels.join(', ')
+                                : 'Sin meses calculados'}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-neutral-700 text-right whitespace-nowrap">
+                              {formatUsdAmount(student.monthlyFee, locale)}
+                            </td>
+                            <td className="px-4 py-3 text-sm font-semibold text-neutral-900 text-right whitespace-nowrap">
+                              {formatUsdAmount(student.total, locale)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-olive-100 px-6 py-4 bg-white flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-100 text-neutral-700 transition-colors font-semibold"
+          >
+            {t.students?.buttons?.close || 'Cerrar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Student Detail Modal Component
 function StudentDetailModal({ student, onClose, onEdit, t, statusLabels, paymentStatusLabels }) {
   const getStudentDisplayName = (student) => {
@@ -1177,15 +1483,7 @@ function StudentDetailModal({ student, onClose, onEdit, t, statusLabels, payment
   };
 
   const fullName = getStudentDisplayName(student);
-  const derivedPaymentStatus = (() => {
-    const baseStatus = student.paymentStatus || 'pending';
-    if (baseStatus === 'paid' || baseStatus === 'current') return baseStatus;
-    const dayOfMonth = new Date().getDate();
-    if (baseStatus === 'pending' && dayOfMonth > 10) {
-      return 'overdue';
-    }
-    return baseStatus;
-  })();
+  const derivedPaymentStatus = derivePaymentStatusForCurrentDate(student);
   const sponsor = student.sponsor || {};
 
   const formatDate = (dateString) => {
@@ -1266,13 +1564,7 @@ function StudentDetailModal({ student, onClose, onEdit, t, statusLabels, payment
                 }`}>
                   {statusLabels[student.status] || student.status || 'Desconocido'}
                 </span>
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                  derivedPaymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                  derivedPaymentStatus === 'current' ? 'bg-blue-100 text-blue-800' :
-                  derivedPaymentStatus === 'overdue' ? 'bg-red-100 text-red-800' :
-                  derivedPaymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-neutral-100 text-neutral-800'
-                }`}>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusBadgeClass(derivedPaymentStatus)}`}>
                   {paymentStatusLabels[derivedPaymentStatus] || derivedPaymentStatus || 'Pendiente'}
                 </span>
               </div>
@@ -1405,7 +1697,9 @@ function StudentFormModal({
     currentGrade: student?.currentGrade || '',
     academicYear: student?.academicYear || new Date().getFullYear().toString(),
     status: student?.status || 'active',
-    paymentStatus: student?.paymentStatus || 'pending',
+    paymentStatus: student?.status === 'inactive'
+      ? STUDENT_PAYMENT_STATUSES.NOT_APPLICABLE
+      : student?.paymentStatus || STUDENT_PAYMENT_STATUSES.PENDING,
     city: student?.city || 'Lichinga',
     province: student?.province || 'Niassa',
     country: student?.country || 'Mozambique',
@@ -1744,7 +2038,18 @@ function StudentFormModal({
                   </label>
                   <select
                     value={formData.status}
-                    onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                    onChange={(e) => {
+                      const nextStatus = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        status: nextStatus,
+                        paymentStatus: nextStatus === 'inactive'
+                          ? STUDENT_PAYMENT_STATUSES.NOT_APPLICABLE
+                          : prev.paymentStatus === STUDENT_PAYMENT_STATUSES.NOT_APPLICABLE
+                            ? STUDENT_PAYMENT_STATUSES.PENDING
+                            : prev.paymentStatus,
+                      }));
+                    }}
                     className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white"
                   >
                     {statusOptions.map(status => (
@@ -1760,11 +2065,17 @@ function StudentFormModal({
                   <select
                     value={formData.paymentStatus}
                     onChange={(e) => setFormData(prev => ({ ...prev, paymentStatus: e.target.value }))}
-                    className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white"
+                    disabled={formData.status === 'inactive'}
+                    className="w-full px-4 py-2 border border-olive-200 rounded-lg focus:ring-2 focus:ring-olive-500 focus:border-olive-500 text-neutral-900 bg-white disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed"
                   >
-                    {paymentStatusOptions.map(paymentStatus => (
-                      <option key={paymentStatus} value={paymentStatus}>{paymentStatusLabels[paymentStatus] || paymentStatus}</option>
-                    ))}
+                    {paymentStatusOptions
+                      .filter(paymentStatus =>
+                        formData.status === 'inactive' ||
+                        paymentStatus !== STUDENT_PAYMENT_STATUSES.NOT_APPLICABLE
+                      )
+                      .map(paymentStatus => (
+                        <option key={paymentStatus} value={paymentStatus}>{paymentStatusLabels[paymentStatus] || paymentStatus}</option>
+                      ))}
                   </select>
                 </div>
               </div>
@@ -2523,7 +2834,7 @@ function PaymentsModal({ student, onClose, t, locale }) {
     [PAYMENT_STATUSES.CANCELLED]: t.students?.payments?.paymentStatusCancelled || 'Cancelado',
   };
 
-  const monthsOptions = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => ({
+  const monthsOptions = TUITION_DUE_MONTHS.map((num) => ({
     value: String(num),
     label: getMonthLabel(String(num)),
   }));
