@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './config/firebase';
-import EscolaMaosUnidasSite from './site.jsx';
+import EscolaMaosUnidasSite, { BlogIndexPage, BlogPostPage } from './site.jsx';
 import Login from './components/Login';
 import AdminDashboard from './components/AdminDashboard';
 import CandidatesCRUD from './components/CandidatesCRUD';
@@ -43,6 +43,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<EscolaMaosUnidasSite />} />
+        <Route path="/blog" element={<BlogIndexPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
         <Route path="/login" element={<Login />} />
         <Route 
           path="/admin" 
@@ -96,4 +98,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-

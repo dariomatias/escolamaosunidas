@@ -1,4 +1,12 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { Link, useParams } from "react-router-dom";
+import {
+  BLOG_COPY,
+  BLOG_POSTS,
+  formatBlogDate,
+  getBlogPostBySlug,
+  getLocalizedBlogPost,
+} from "./data/blogPosts";
 
 // Sitio institucional de la Escola Mãos Unidas
 
@@ -743,6 +751,288 @@ const COPY = {
   },
 };
 
+const SHOW_BLOG_UPDATES_ON_HOME = false;
+
+const PUBLIC_LANGUAGES = [
+  { code: "pt", name: "Português", flag: "🇵🇹" },
+  { code: "es", name: "Español", flag: "🇪🇸" },
+  { code: "en", name: "English", flag: "🇺🇸" },
+];
+
+function BlogLanguageSelector({ lang, setLang }) {
+  return (
+    <div className="flex items-center gap-2">
+      {PUBLIC_LANGUAGES.map((language) => (
+        <button
+          key={language.code}
+          onClick={() => setLang(language.code)}
+          className={`h-9 min-w-9 rounded-lg border px-2 text-sm transition-colors ${
+            lang === language.code
+              ? "border-olive-500 bg-olive-50 text-olive-800"
+              : "border-olive-200 bg-white text-neutral-600 hover:bg-olive-50"
+          }`}
+          title={language.name}
+          aria-label={language.name}
+        >
+          {language.flag}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function BlogShell({ children, lang, setLang, t }) {
+  return (
+    <div className="min-h-screen bg-stone-50 text-neutral-900">
+      <header className="sticky top-0 z-40 border-b border-olive-100 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
+          <Link to="/" className="flex items-center gap-3">
+            <img
+              src="/assets/logo-escola-maos-unidas.png"
+              alt="Logo Escola Mãos Unidas"
+              className="h-10 w-10 rounded-full object-cover"
+            />
+            <span className="text-lg font-extrabold tracking-tight text-olive-800">Escola Mãos Unidas</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/"
+              className="hidden rounded-lg border border-olive-200 px-4 py-2 text-sm font-medium text-olive-800 transition-colors hover:bg-olive-50 sm:inline-flex"
+            >
+              {t.backHome}
+            </Link>
+            <BlogLanguageSelector lang={lang} setLang={setLang} />
+          </div>
+        </div>
+      </header>
+      <main>{children}</main>
+      <footer className="border-t border-olive-100 bg-white">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 md:flex-row">
+          <div className="flex items-center gap-3">
+            <img
+              src="/assets/logo-escola-maos-unidas.png"
+              alt="Logo Escola Mãos Unidas"
+              className="h-10 w-10 rounded-full object-cover"
+            />
+            <p className="text-sm text-neutral-600">© {new Date().getFullYear()} Escola Mãos Unidas</p>
+          </div>
+          <Link to="/" className="text-sm font-medium text-olive-700 underline hover:text-olive-800">
+            {t.backHome}
+          </Link>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function BlogMeta({ post, lang, t }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-600">
+      <span className="rounded-lg bg-olive-100 px-3 py-1 font-semibold text-olive-800">{post.category}</span>
+      <span>{t.published} {formatBlogDate(post.publishedAt, lang)}</span>
+      <span>{post.readTime}</span>
+    </div>
+  );
+}
+
+function BlogPostTile({ post, lang, t }) {
+  const localizedPost = getLocalizedBlogPost(post, lang);
+
+  return (
+    <article className="overflow-hidden rounded-lg border border-olive-100 bg-white shadow-sm transition-shadow hover:shadow-md">
+      <Link to={`/blog/${post.slug}`} className="block">
+        <div className="aspect-[16/9] overflow-hidden bg-olive-50">
+          <img
+            src={localizedPost.heroImage}
+            alt={localizedPost.imageAlt}
+            className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+          />
+        </div>
+      </Link>
+      <div className="space-y-4 p-5">
+        <BlogMeta post={localizedPost} lang={lang} t={t} />
+        <div>
+          <h2 className="text-xl font-bold leading-snug text-olive-900">
+            <Link to={`/blog/${post.slug}`} className="hover:text-olive-700">
+              {localizedPost.title}
+            </Link>
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-neutral-700">{localizedPost.excerpt}</p>
+        </div>
+        <Link
+          to={`/blog/${post.slug}`}
+          className="inline-flex rounded-lg bg-olive-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-olive-800"
+        >
+          {t.readPost}
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function BlogContent({ blocks }) {
+  return (
+    <div className="space-y-6">
+      {blocks.map((block, index) => {
+        if (block.type === "heading") {
+          return (
+            <h2 key={index} className="pt-3 text-2xl font-bold text-olive-800">
+              {block.text}
+            </h2>
+          );
+        }
+
+        if (block.type === "list") {
+          return (
+            <ul key={index} className="space-y-3">
+              {block.items.map((item, itemIndex) => (
+                <li key={itemIndex} className="flex gap-3 text-neutral-700">
+                  <span className="mt-1 h-2 w-2 flex-none rounded-full bg-olive-500" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        return (
+          <p key={index} className="text-lg leading-relaxed text-neutral-700">
+            {block.text}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+function BlogLandingTiles({ lang }) {
+  if (!SHOW_BLOG_UPDATES_ON_HOME) {
+    return null;
+  }
+
+  const t = BLOG_COPY[lang] || BLOG_COPY.pt;
+  const landingPosts = BLOG_POSTS.slice(0, 3);
+
+  return (
+    <section id="updates" className="bg-white py-16">
+      <div className="mx-auto max-w-6xl px-4">
+        <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+          <div>
+            <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-olive-600">{t.eyebrow}</p>
+            <h2 className="text-3xl font-bold text-olive-800">{t.landingTitle}</h2>
+            <p className="mt-3 max-w-2xl text-neutral-600">{t.landingSubtitle}</p>
+          </div>
+          <Link
+            to="/blog"
+            className="inline-flex w-fit rounded-lg border border-olive-300 px-4 py-2 text-sm font-semibold text-olive-800 transition-colors hover:bg-olive-50"
+          >
+            {t.landingCta}
+          </Link>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {landingPosts.map((post) => (
+            <BlogPostTile key={post.slug} post={post} lang={lang} t={t} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function BlogIndexPage() {
+  const [lang, setLang] = useState("pt");
+  const t = BLOG_COPY[lang] || BLOG_COPY.pt;
+
+  return (
+    <BlogShell lang={lang} setLang={setLang} t={t}>
+      <section className="border-b border-olive-100 bg-gradient-to-br from-olive-50 via-white to-stone-100">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[1.05fr_0.95fr] md:items-center md:py-20">
+          <div>
+            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-olive-600">{t.eyebrow}</p>
+            <h1 className="text-4xl font-extrabold leading-tight text-olive-900 md:text-5xl">{t.title}</h1>
+            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-neutral-700">{t.description}</p>
+          </div>
+          <div className="overflow-hidden rounded-lg border border-olive-200 bg-white shadow-lg">
+            <img
+              src="/assets/WhatsApp Image 2025-11-01 at 16.58.02_4529292f.jpg"
+              alt="Escola Mãos Unidas"
+              className="aspect-[4/3] h-full w-full object-cover"
+            />
+          </div>
+        </div>
+      </section>
+      <section className="py-14">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-olive-800">{t.allPosts}</h2>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            {BLOG_POSTS.map((post) => (
+              <BlogPostTile key={post.slug} post={post} lang={lang} t={t} />
+            ))}
+          </div>
+        </div>
+      </section>
+    </BlogShell>
+  );
+}
+
+export function BlogPostPage() {
+  const [lang, setLang] = useState("pt");
+  const { slug } = useParams();
+  const t = BLOG_COPY[lang] || BLOG_COPY.pt;
+  const post = getBlogPostBySlug(slug);
+
+  if (!post) {
+    return (
+      <BlogShell lang={lang} setLang={setLang} t={t}>
+        <section className="mx-auto max-w-3xl px-4 py-20 text-center">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-olive-600">{t.eyebrow}</p>
+          <h1 className="text-4xl font-extrabold text-olive-900">{t.notFoundTitle}</h1>
+          <p className="mt-4 text-neutral-700">{t.notFoundText}</p>
+          <Link
+            to="/blog"
+            className="mt-8 inline-flex rounded-lg bg-olive-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-olive-800"
+          >
+            {t.backToBlog}
+          </Link>
+        </section>
+      </BlogShell>
+    );
+  }
+
+  const localizedPost = getLocalizedBlogPost(post, lang);
+
+  return (
+    <BlogShell lang={lang} setLang={setLang} t={t}>
+      <article>
+        <header className="border-b border-olive-100 bg-white">
+          <div className="mx-auto max-w-4xl px-4 py-12 md:py-16">
+            <Link to="/blog" className="mb-8 inline-flex text-sm font-semibold text-olive-700 underline hover:text-olive-900">
+              {t.backToBlog}
+            </Link>
+            <BlogMeta post={localizedPost} lang={lang} t={t} />
+            <h1 className="mt-5 text-4xl font-extrabold leading-tight text-olive-900 md:text-5xl">{localizedPost.title}</h1>
+            <p className="mt-5 text-xl leading-relaxed text-neutral-700">{localizedPost.excerpt}</p>
+          </div>
+          <div className="mx-auto max-w-5xl px-4 pb-10">
+            <div className="overflow-hidden rounded-lg border border-olive-100 shadow-lg">
+              <img
+                src={localizedPost.heroImage}
+                alt={localizedPost.imageAlt}
+                className="aspect-[16/9] h-full w-full object-cover"
+              />
+            </div>
+          </div>
+        </header>
+        <section className="mx-auto max-w-3xl px-4 py-12">
+          <BlogContent blocks={localizedPost.body} />
+        </section>
+      </article>
+    </BlogShell>
+  );
+}
+
 export default function EscolaMaosUnidasSite() {
   const [lang, setLang] = useState("pt");
   const [showTimeline, setShowTimeline] = useState(true);
@@ -1085,6 +1375,8 @@ export default function EscolaMaosUnidasSite() {
           </div>
         </div>
       </section>
+
+      <BlogLandingTiles lang={lang} />
 
       {/* SCHOOL */}
       <section id="school" className="py-20 bg-white relative">
@@ -1855,4 +2147,3 @@ export default function EscolaMaosUnidasSite() {
     </div>
   );
 }
-
