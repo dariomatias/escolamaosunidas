@@ -1,4 +1,5 @@
 const {onRequest} = require('firebase-functions/v2/https');
+const {onSchedule} = require('firebase-functions/v2/scheduler');
 const {defineSecret} = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const sgMail = require('@sendgrid/mail');
@@ -7,6 +8,505 @@ admin.initializeApp();
 
 // Definir el secret de SendGrid
 const sendgridApiKey = defineSecret('SENDGRID_API_KEY');
+const PAYMENT_REMINDER_TIME_ZONE = 'America/Argentina/Buenos_Aires';
+const TUITION_DUE_MONTHS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+const PAYMENT_STATUSES = {
+  PAID: 'paid',
+};
+const PAYMENT_TYPES = {
+  ENROLLMENT: 'enrollment',
+};
+const MONTH_LABELS_ES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function formatUsdAmount(amount) {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(Number(amount) || 0);
+}
+
+function getZonedDateParts(date = new Date(), timeZone = PAYMENT_REMINDER_TIME_ZONE) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  });
+
+  const parts = Object.fromEntries(
+    formatter.formatToParts(date).map((part) => [part.type, part.value])
+  );
+
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+  };
+}
+
+function getMonthLabel(monthNumber) {
+  return MONTH_LABELS_ES[monthNumber - 1] || `Mes ${monthNumber}`;
+}
+
+function toDate(value) {
+  if (!value) return null;
+  if (typeof value.toDate === 'function') return value.toDate();
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getExplicitPaymentMonth(payment) {
+  const month = Number.parseInt(payment.month, 10);
+  return month >= 1 && month <= 12 ? month : null;
+}
+
+function isPaidForTuitionMonth(payment, monthNumber, year) {
+  if (payment.status !== PAYMENT_STATUSES.PAID) return false;
+  if (payment.type === PAYMENT_TYPES.ENROLLMENT) return false;
+
+  const paymentDate = toDate(payment.date);
+  const explicitMonth = getExplicitPaymentMonth(payment);
+
+  if (TUITION_DUE_MONTHS.includes(explicitMonth)) {
+    return explicitMonth === monthNumber &&
+      (!paymentDate || paymentDate.getFullYear() === year);
+  }
+
+  if (!paymentDate) return false;
+  return paymentDate.getMonth() + 1 === monthNumber &&
+    paymentDate.getFullYear() === year;
+}
+
+function calculateTotalDue(student) {
+  const enrollmentFee = Number.parseFloat(student.enrollmentFee) || 20;
+  const monthlyFee = Number.parseFloat(student.monthlyFee) || 40;
+  const numberOfMonths = Number.parseInt(student.numberOfMonths, 10) || TUITION_DUE_MONTHS.length;
+
+  if (student.fullPaymentAmount) {
+    return Number.parseFloat(student.fullPaymentAmount) || 420;
+  }
+
+  return enrollmentFee + (monthlyFee * numberOfMonths);
+}
+
+function calculateTotalPaid(payments) {
+  return payments
+    .filter((payment) => payment.status === PAYMENT_STATUSES.PAID)
+    .reduce((sum, payment) => sum + (Number.parseFloat(payment.amount) || 0), 0);
+}
+
+function getSponsorInfo(student) {
+  const sponsor = student.sponsor || {};
+  const email = String(sponsor.email || '').trim().toLowerCase();
+  const firstName = String(sponsor.firstName || '').trim();
+  const lastName = String(sponsor.lastName || '').trim();
+  const name = [firstName, lastName].filter(Boolean).join(' ') || 'Patrocinador/a';
+
+  return { email, firstName, lastName, name };
+}
+
+function getStudentDisplayName(student) {
+  const fullName = [student.firstName, student.lastName]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return fullName || student.fullName || 'Estudiante';
+}
+
+function getReminderLogId(type, year, monthNumber, sponsorEmail) {
+  const emailKey = Buffer.from(sponsorEmail).toString('base64url');
+  return `${type}_${year}_${String(monthNumber).padStart(2, '0')}_${emailKey}`;
+}
+
+async function getStudentPaymentsForSchedule(studentId) {
+  const snapshot = await admin.firestore()
+    .collection('students')
+    .doc(studentId)
+    .collection('payments')
+    .get();
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+}
+
+async function buildPaymentReminderGroups(monthNumber, year) {
+  const studentsSnapshot = await admin.firestore()
+    .collection('students')
+    .where('status', '==', 'active')
+    .get();
+
+  const groups = new Map();
+
+  for (const studentDoc of studentsSnapshot.docs) {
+    const student = { id: studentDoc.id, ...studentDoc.data() };
+    const sponsorInfo = getSponsorInfo(student);
+
+    if (!sponsorInfo.email) continue;
+
+    const payments = await getStudentPaymentsForSchedule(student.id);
+    const totalDue = calculateTotalDue(student);
+    const totalPaid = calculateTotalPaid(payments);
+    const isFullyPaid = totalPaid >= totalDue;
+    const hasCurrentMonthPayment = payments.some((payment) =>
+      isPaidForTuitionMonth(payment, monthNumber, year)
+    );
+
+    if (isFullyPaid || hasCurrentMonthPayment) continue;
+
+    const monthlyFee = Number.parseFloat(student.monthlyFee) || 40;
+    const row = {
+      studentId: student.id,
+      studentName: getStudentDisplayName(student),
+      matriculationNumber: student.matriculationNumber || '',
+      currentGrade: student.currentGrade || '',
+      academicYear: student.academicYear || '',
+      monthlyFee,
+    };
+
+    const group = groups.get(sponsorInfo.email) || {
+      sponsorEmail: sponsorInfo.email,
+      sponsorName: sponsorInfo.name,
+      students: [],
+      total: 0,
+    };
+
+    group.students.push(row);
+    group.total += monthlyFee;
+    groups.set(sponsorInfo.email, group);
+  }
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      students: group.students.sort((a, b) => {
+        const matriculationCompare = String(a.matriculationNumber).localeCompare(String(b.matriculationNumber));
+        if (matriculationCompare !== 0) return matriculationCompare;
+        return a.studentName.localeCompare(b.studentName);
+      }),
+    }))
+    .sort((a, b) => a.sponsorName.localeCompare(b.sponsorName));
+}
+
+function buildScheduledPaymentReminderEmail({ group, type, monthLabel }) {
+  const isOverdue = type === 'overdue';
+  const title = isOverdue
+    ? 'Pago atrasado - Escola Mãos Unidas'
+    : 'Recordatorio de cuota mensual - Escola Mãos Unidas';
+  const intro = isOverdue
+    ? `Al día 11 no registramos el pago correspondiente al mes de ${monthLabel}.`
+    : `Le recordamos que está pendiente el pago correspondiente al mes de ${monthLabel}.`;
+  const actionText = isOverdue
+    ? 'Por favor, comuníquese con nosotros para regularizar el pago atrasado.'
+    : 'Si el pago ya fue realizado, puede desestimar este mensaje. En caso contrario, por favor comuníquese con nosotros para coordinarlo.';
+  const subject = isOverdue
+    ? `Pago atrasado - ${monthLabel} - Escola Mãos Unidas`
+    : `Recordatorio de cuota mensual - ${monthLabel} - Escola Mãos Unidas`;
+
+  const textRows = group.students.map((student) => (
+    `- ${student.studentName}` +
+    `${student.matriculationNumber ? ` (${student.matriculationNumber})` : ''}` +
+    `${student.currentGrade ? ` - ${student.currentGrade}` : ''}` +
+    ` - ${monthLabel}: ${formatUsdAmount(student.monthlyFee)}`
+  )).join('\n');
+
+  const htmlRows = group.students.map((student) => `
+    <tr>
+      <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(student.studentName)}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(student.matriculationNumber || '-')}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(student.currentGrade || '-')}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(monthLabel)}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">${escapeHtml(formatUsdAmount(student.monthlyFee))}</td>
+    </tr>
+  `).join('');
+
+  return {
+    to: group.sponsorEmail,
+    from: 'noreply@escolamaosunidas.com',
+    subject,
+    text: `
+Estimado/a ${group.sponsorName},
+
+${intro}
+
+Detalle:
+${textRows}
+
+Total pendiente: ${formatUsdAmount(group.total)}
+
+${actionText}
+
+Gracias por su apoyo continuo a Escola Mãos Unidas.
+
+Saludos cordiales,
+Equipo Escola Mãos Unidas
+    `,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 680px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #4a5568; border-bottom: 2px solid ${isOverdue ? '#dc2626' : '#659141'}; padding-bottom: 10px;">
+          ${escapeHtml(title)}
+        </h2>
+
+        <p>Estimado/a <strong>${escapeHtml(group.sponsorName)}</strong>,</p>
+        <p style="color: #4a5568;">${escapeHtml(intro)}</p>
+
+        <div style="background-color: #f7fafc; border-left: 4px solid ${isOverdue ? '#dc2626' : '#659141'}; padding: 18px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #2d3748; margin-top: 0;">Detalle del pago ${isOverdue ? 'atrasado' : 'pendiente'}</h3>
+          <table style="width: 100%; border-collapse: collapse; background: #ffffff;">
+            <thead>
+              <tr>
+                <th style="padding: 10px; border-bottom: 2px solid #cbd5e0; text-align: left;">Estudiante</th>
+                <th style="padding: 10px; border-bottom: 2px solid #cbd5e0; text-align: left;">Matrícula</th>
+                <th style="padding: 10px; border-bottom: 2px solid #cbd5e0; text-align: left;">Curso</th>
+                <th style="padding: 10px; border-bottom: 2px solid #cbd5e0; text-align: left;">Mes</th>
+                <th style="padding: 10px; border-bottom: 2px solid #cbd5e0; text-align: right;">Valor</th>
+              </tr>
+            </thead>
+            <tbody>${htmlRows}</tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" style="padding: 12px 10px; text-align: right; font-weight: bold;">Total pendiente</td>
+                <td style="padding: 12px 10px; text-align: right; font-weight: bold;">${escapeHtml(formatUsdAmount(group.total))}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <p style="color: #4a5568;">${escapeHtml(actionText)}</p>
+        <p style="color: #4a5568;">Gracias por su apoyo continuo a <strong>Escola Mãos Unidas</strong>.</p>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #718096; font-size: 12px;">
+          <p>Saludos cordiales,<br><strong>Equipo Escola Mãos Unidas</strong></p>
+          <p>Email: info@escolamaosunidas.com</p>
+        </div>
+      </div>
+    `,
+  };
+}
+
+function buildOverduePaymentReportEmail({ group }) {
+  const subject = 'Pago atrasado - Detalle de cuotas pendientes - Escola Mãos Unidas';
+  const textRows = group.students.map((student) => (
+    `- ${student.studentName}` +
+    `${student.matriculationNumber ? ` (${student.matriculationNumber})` : ''}` +
+    `${student.currentGrade ? ` - ${student.currentGrade}` : ''}` +
+    ` - Meses: ${student.overdueMonthLabels.join(', ') || '-'}` +
+    ` - Valor mensual: ${formatUsdAmount(student.monthlyFee)}` +
+    ` - Total: ${formatUsdAmount(student.total)}`
+  )).join('\n');
+
+  const htmlRows = group.students.map((student) => `
+    <tr>
+      <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(student.studentName)}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(student.matriculationNumber || '-')}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(student.currentGrade || '-')}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(student.overdueMonthLabels.join(', ') || '-')}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">${escapeHtml(formatUsdAmount(student.monthlyFee))}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">${escapeHtml(formatUsdAmount(student.total))}</td>
+    </tr>
+  `).join('');
+
+  return {
+    to: group.sponsorEmail,
+    from: 'noreply@escolamaosunidas.com',
+    subject,
+    text: `
+Estimado/a ${group.sponsorName},
+
+Al día de hoy registramos cuotas atrasadas para los siguientes estudiantes apadrinados:
+
+${textRows}
+
+Total pendiente: ${formatUsdAmount(group.total)}
+
+Por favor, comuníquese con nosotros para regularizar los pagos pendientes.
+
+Gracias por su apoyo continuo a Escola Mãos Unidas.
+
+Saludos cordiales,
+Equipo Escola Mãos Unidas
+    `,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 720px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #4a5568; border-bottom: 2px solid #dc2626; padding-bottom: 10px;">
+          Pago atrasado - Escola Mãos Unidas
+        </h2>
+
+        <p>Estimado/a <strong>${escapeHtml(group.sponsorName)}</strong>,</p>
+        <p style="color: #4a5568;">Al día de hoy registramos cuotas atrasadas para los siguientes estudiantes apadrinados:</p>
+
+        <div style="background-color: #f7fafc; border-left: 4px solid #dc2626; padding: 18px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #2d3748; margin-top: 0;">Detalle de pagos atrasados</h3>
+          <table style="width: 100%; border-collapse: collapse; background: #ffffff;">
+            <thead>
+              <tr>
+                <th style="padding: 10px; border-bottom: 2px solid #cbd5e0; text-align: left;">Estudiante</th>
+                <th style="padding: 10px; border-bottom: 2px solid #cbd5e0; text-align: left;">Matrícula</th>
+                <th style="padding: 10px; border-bottom: 2px solid #cbd5e0; text-align: left;">Curso</th>
+                <th style="padding: 10px; border-bottom: 2px solid #cbd5e0; text-align: left;">Meses adeudados</th>
+                <th style="padding: 10px; border-bottom: 2px solid #cbd5e0; text-align: right;">Valor mensual</th>
+                <th style="padding: 10px; border-bottom: 2px solid #cbd5e0; text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>${htmlRows}</tbody>
+            <tfoot>
+              <tr>
+                <td colspan="5" style="padding: 12px 10px; text-align: right; font-weight: bold;">Total pendiente</td>
+                <td style="padding: 12px 10px; text-align: right; font-weight: bold;">${escapeHtml(formatUsdAmount(group.total))}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <p style="color: #4a5568;">Por favor, comuníquese con nosotros para regularizar los pagos pendientes.</p>
+        <p style="color: #4a5568;">Gracias por su apoyo continuo a <strong>Escola Mãos Unidas</strong>.</p>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #718096; font-size: 12px;">
+          <p>Saludos cordiales,<br><strong>Equipo Escola Mãos Unidas</strong></p>
+          <p>Email: info@escolamaosunidas.com</p>
+        </div>
+      </div>
+    `,
+  };
+}
+
+async function sendScheduledPaymentEmail({ group, type, year, monthNumber, monthLabel }) {
+  const logRef = admin.firestore()
+    .collection('scheduledPaymentEmailLogs')
+    .doc(getReminderLogId(type, year, monthNumber, group.sponsorEmail));
+  const existingLog = await logRef.get();
+
+  if (existingLog.exists && existingLog.data()?.status === 'sent') {
+    return { status: 'skipped', sponsorEmail: group.sponsorEmail };
+  }
+
+  await logRef.set({
+    type,
+    year,
+    month: monthNumber,
+    monthLabel,
+    sponsorEmail: group.sponsorEmail,
+    sponsorName: group.sponsorName,
+    studentCount: group.students.length,
+    total: group.total,
+    status: 'sending',
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
+
+  try {
+    await sgMail.send(buildScheduledPaymentReminderEmail({ group, type, monthLabel }));
+    await logRef.set({
+      status: 'sent',
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return { status: 'sent', sponsorEmail: group.sponsorEmail };
+  } catch (error) {
+    await logRef.set({
+      status: 'failed',
+      lastError: error.message,
+      failedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    throw error;
+  }
+}
+
+async function runScheduledPaymentReminder(type, date = new Date()) {
+  sgMail.setApiKey(sendgridApiKey.value());
+
+  const { year, month: monthNumber } = getZonedDateParts(date);
+  const monthLabel = getMonthLabel(monthNumber);
+
+  if (!TUITION_DUE_MONTHS.includes(monthNumber)) {
+    console.log(`Skipping ${type} payment reminders for non-tuition month ${monthNumber}.`);
+    return {
+      skipped: true,
+      reason: 'non_tuition_month',
+      type,
+      year,
+      month: monthNumber,
+    };
+  }
+
+  const groups = await buildPaymentReminderGroups(monthNumber, year);
+  const results = [];
+
+  for (const group of groups) {
+    try {
+      results.push(await sendScheduledPaymentEmail({
+        group,
+        type,
+        year,
+        monthNumber,
+        monthLabel,
+      }));
+    } catch (error) {
+      console.error(`Error sending ${type} payment email to ${group.sponsorEmail}:`, error);
+      results.push({
+        status: 'failed',
+        sponsorEmail: group.sponsorEmail,
+        message: error.message,
+      });
+    }
+  }
+
+  const summary = results.reduce((acc, result) => {
+    acc[result.status] = (acc[result.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  console.log(`Scheduled ${type} payment reminders finished`, {
+    year,
+    month: monthNumber,
+    monthLabel,
+    groups: groups.length,
+    summary,
+  });
+
+  return {
+    type,
+    year,
+    month: monthNumber,
+    monthLabel,
+    groups: groups.length,
+    summary,
+  };
+}
+
+exports.sendMonthlyPaymentPendingReminders = onSchedule(
+  {
+    schedule: '0 9 1 * *',
+    timeZone: PAYMENT_REMINDER_TIME_ZONE,
+    secrets: [sendgridApiKey],
+  },
+  async () => runScheduledPaymentReminder('pending')
+);
+
+exports.sendMonthlyPaymentOverdueReminders = onSchedule(
+  {
+    schedule: '0 9 11 * *',
+    timeZone: PAYMENT_REMINDER_TIME_ZONE,
+    secrets: [sendgridApiKey],
+  },
+  async () => runScheduledPaymentReminder('overdue')
+);
 
 exports.sendContactEmail = onRequest(
   {
@@ -489,6 +989,101 @@ Equipo Escola Mãos Unidas
         ? 'Configuración de SendGrid incorrecta (API key). Contacte al administrador.'
         : error.message;
       res.status(500).json({ error: 'Failed to send email', message: userMessage });
+    }
+  }
+);
+
+exports.sendOverduePaymentReportEmail = onRequest(
+  {
+    secrets: [sendgridApiKey],
+    cors: true,
+  },
+  async (req, res) => {
+    sgMail.setApiKey(sendgridApiKey.value());
+
+    if (req.method === 'OPTIONS') {
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.set('Access-Control-Max-Age', '3600');
+      res.status(204).send('');
+      return;
+    }
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    try {
+      const authHeader = req.get('Authorization') || '';
+      const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+
+      if (!idToken) {
+        res.status(401).json({ error: 'Missing authorization token' });
+        return;
+      }
+
+      await admin.auth().verifyIdToken(idToken);
+
+      const {
+        sponsorEmail,
+        sponsorName,
+        students,
+        total,
+      } = req.body;
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!sponsorEmail || !emailRegex.test(sponsorEmail)) {
+        res.status(400).json({ error: 'Invalid sponsor email' });
+        return;
+      }
+
+      if (!Array.isArray(students) || students.length === 0) {
+        res.status(400).json({ error: 'Missing overdue students' });
+        return;
+      }
+
+      const safeStudents = students.map((student) => {
+        const overdueMonthLabels = Array.isArray(student.overdueMonthLabels)
+          ? student.overdueMonthLabels.filter(Boolean).map(String)
+          : [];
+        const monthlyFee = Number.parseFloat(student.monthlyFee) || 0;
+        const studentTotal = Number.parseFloat(student.total) || (monthlyFee * overdueMonthLabels.length);
+
+        return {
+          studentName: String(student.studentName || 'Estudiante'),
+          matriculationNumber: String(student.matriculationNumber || ''),
+          currentGrade: String(student.currentGrade || ''),
+          overdueMonthLabels,
+          monthlyFee,
+          total: studentTotal,
+        };
+      });
+
+      const group = {
+        sponsorEmail,
+        sponsorName: String(sponsorName || 'Patrocinador/a'),
+        students: safeStudents,
+        total: Number.parseFloat(total) || safeStudents.reduce((sum, student) => sum + student.total, 0),
+      };
+
+      await sgMail.send(buildOverduePaymentReportEmail({ group }));
+
+      res.status(200).json({
+        success: true,
+        message: 'Overdue payment report email sent successfully',
+      });
+    } catch (error) {
+      const details = error.response?.body ? JSON.stringify(error.response.body) : error.message;
+      console.error('Error sending overdue payment report email:', error.message, details);
+      res.status(500).json({
+        error: 'Failed to send email',
+        message: error.message,
+      });
     }
   }
 );

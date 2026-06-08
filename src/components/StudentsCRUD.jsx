@@ -1339,8 +1339,108 @@ export default function StudentsCRUD() {
 }
 
 function OverdueReportModal({ groups, loading, error, onClose, t, locale }) {
+  const [sendingTarget, setSendingTarget] = useState(null);
+  const [emailResults, setEmailResults] = useState({});
   const totalStudents = groups.reduce((sum, group) => sum + group.students.length, 0);
   const grandTotal = groups.reduce((sum, group) => sum + group.total, 0);
+  const groupsWithEmail = groups.filter((group) => group.sponsorEmail);
+  const isSendingAll = sendingTarget === 'all';
+
+  const getEmailPayloadForGroup = (group) => ({
+    sponsorEmail: group.sponsorEmail,
+    sponsorName: group.sponsorName,
+    total: group.total,
+    students: group.students.map((student) => ({
+      studentName: student.studentName,
+      matriculationNumber: student.matriculationNumber,
+      currentGrade: student.currentGrade,
+      overdueMonthLabels: student.overdueMonthLabels,
+      monthlyFee: student.monthlyFee,
+      total: student.total,
+    })),
+  });
+
+  const sendOverdueEmailForGroup = async (group) => {
+    const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+    if (!idToken) {
+      throw new Error('No hay sesión activa. Inicia sesión de nuevo.');
+    }
+
+    const response = await fetch('https://us-central1-escola-maos-unidas.cloudfunctions.net/sendOverduePaymentReportEmail', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify(getEmailPayloadForGroup(group)),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || errorData.error || response.statusText);
+    }
+  };
+
+  const handleSendGroupEmail = async (group) => {
+    if (!group.sponsorEmail) return;
+    const targetKey = group.key;
+    setSendingTarget(targetKey);
+    setEmailResults((prev) => ({
+      ...prev,
+      [targetKey]: { status: 'sending', message: 'Enviando...' },
+    }));
+
+    try {
+      await sendOverdueEmailForGroup(group);
+      setEmailResults((prev) => ({
+        ...prev,
+        [targetKey]: { status: 'success', message: 'Mail enviado' },
+      }));
+    } catch (sendError) {
+      console.error('Error sending overdue email:', sendError);
+      setEmailResults((prev) => ({
+        ...prev,
+        [targetKey]: { status: 'error', message: sendError.message },
+      }));
+    } finally {
+      setSendingTarget(null);
+    }
+  };
+
+  const handleSendAllEmails = async () => {
+    if (groupsWithEmail.length === 0 || isSendingAll) return;
+    if (!confirm(`¿Enviar mails de pagos atrasados a ${groupsWithEmail.length} padrinos?`)) return;
+
+    setSendingTarget('all');
+    let sentCount = 0;
+    let failedCount = 0;
+
+    for (const group of groupsWithEmail) {
+      setEmailResults((prev) => ({
+        ...prev,
+        [group.key]: { status: 'sending', message: 'Enviando...' },
+      }));
+
+      try {
+        await sendOverdueEmailForGroup(group);
+        sentCount += 1;
+        setEmailResults((prev) => ({
+          ...prev,
+          [group.key]: { status: 'success', message: 'Mail enviado' },
+        }));
+      } catch (sendError) {
+        failedCount += 1;
+        console.error('Error sending overdue email:', sendError);
+        setEmailResults((prev) => ({
+          ...prev,
+          [group.key]: { status: 'error', message: sendError.message },
+        }));
+      }
+    }
+
+    setSendingTarget(null);
+    alert(`Envío terminado. Enviados: ${sentCount}. Errores: ${failedCount}.`);
+  };
 
   return (
     <div
@@ -1374,9 +1474,19 @@ function OverdueReportModal({ groups, loading, error, onClose, t, locale }) {
                 ? 'Calculando meses adeudados...'
                 : `${totalStudents} alumnos atrasados en ${groups.length} padrinos`}
             </div>
-            <div className="bg-olive-50 border border-olive-100 rounded-lg px-4 py-3 text-right">
-              <div className="text-xs uppercase tracking-wide text-olive-700 font-semibold">Total general</div>
-              <div className="text-2xl font-bold text-olive-900">{formatUsdAmount(grandTotal, locale)}</div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <button
+                type="button"
+                onClick={handleSendAllEmails}
+                disabled={loading || Boolean(error) || groupsWithEmail.length === 0 || Boolean(sendingTarget)}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors disabled:bg-neutral-300 disabled:cursor-not-allowed"
+              >
+                {isSendingAll ? 'Enviando...' : 'Enviar a todos'}
+              </button>
+              <div className="bg-olive-50 border border-olive-100 rounded-lg px-4 py-3 text-right">
+                <div className="text-xs uppercase tracking-wide text-olive-700 font-semibold">Total general</div>
+                <div className="text-2xl font-bold text-olive-900">{formatUsdAmount(grandTotal, locale)}</div>
+              </div>
             </div>
           </div>
 
@@ -1408,6 +1518,28 @@ function OverdueReportModal({ groups, loading, error, onClose, t, locale }) {
                       <div>{group.students.length} alumnos</div>
                       <div className="font-semibold text-olive-900">
                         Total padrino: {formatUsdAmount(group.total, locale)}
+                      </div>
+                      <div className="mt-3 flex flex-col items-start sm:items-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleSendGroupEmail(group)}
+                          disabled={!group.sponsorEmail || Boolean(sendingTarget)}
+                          className="px-3 py-1.5 rounded bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:bg-neutral-300 disabled:cursor-not-allowed"
+                        >
+                          {sendingTarget === group.key ? 'Enviando...' : 'Enviar mail'}
+                        </button>
+                        {emailResults[group.key] && (
+                          <div className={`text-xs max-w-[260px] ${
+                            emailResults[group.key].status === 'success' ? 'text-green-700' :
+                            emailResults[group.key].status === 'error' ? 'text-red-700' :
+                            'text-neutral-600'
+                          }`}>
+                            {emailResults[group.key].message}
+                          </div>
+                        )}
+                        {!group.sponsorEmail && (
+                          <div className="text-xs text-red-700">Sin email de padrino</div>
+                        )}
                       </div>
                     </div>
                   </div>
